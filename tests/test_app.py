@@ -34,6 +34,7 @@ class FakeStreamlit(types.ModuleType):
         return lambda *args,**kwargs: None
     def columns(self, sizes): return [self for _ in (range(sizes) if isinstance(sizes, int) else sizes)]
     def expander(self,*args,**kwargs): return self
+    def container(self,*args,**kwargs): return self
     def file_uploader(self,*args,**kwargs): return None
     def button(self,label,**kwargs): return label=='Solve drawing'
     def selectbox(self,label,options,index=0,**kwargs):

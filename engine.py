@@ -1,9 +1,9 @@
-"""Modified nodal analysis: R, independent V/I and ideal feedback op amps.
+"""Modified nodal analysis: R, V/I, ideal feedback amps and open-loop comparators.
 
 Unknowns: node voltages, voltage-source currents, op-amp output currents.
 """
 import numpy as np
-from circuit_model import component_nodes, validate_opamps, without_load
+from circuit_model import component_nodes, validate_opamps, without_load, opamp_mode, comparator_state
 
 
 def solve_circuit(components, *, check_rails=True):
@@ -11,6 +11,9 @@ def solve_circuit(components, *, check_rails=True):
     nodes = sorted({n for p in components for n in component_nodes(p) if n != '0'})
     node_index = {name: i for i, name in enumerate(nodes)}
     voltage_sources = [p for p in components if p['type'] in ('V', 'OPAMP')]
+    comparators = [p for p in components if p['type'] == 'OPAMP' and opamp_mode(p) == 'open_loop']
+    if len(comparators) > 8:
+        raise ValueError('Use at most 8 open-loop comparators in one drawing.')
     size = len(nodes) + len(voltage_sources)
     A, b = np.zeros((size, size)), np.zeros(size)
     for part in components:
@@ -48,20 +51,54 @@ def solve_circuit(components, *, check_rails=True):
                 out = node_index.get(part['node3'])
                 if out is not None:
                     A[out, k] += 1
-                # V+ = V− under negative feedback in the linear region.
-                # This constraint does NOT connect the input nodes by a wire.
-                if i is not None:
-                    A[k, i] += 1
-                if j is not None:
-                    A[k, j] -= 1
+                if opamp_mode(part) == 'open_loop':
+                    # A comparator imposes its OUTPUT level, never V+ = V−.
+                    if out is not None:
+                        A[k, out] += 1
+                    b[k] = part.get('v_min', -15)
+                else:
+                    # Feedback equality does not join the two input nodes.
+                    if i is not None:
+                        A[k, i] += 1
+                    if j is not None:
+                        A[k, j] -= 1
         else:
             raise ValueError(f'Unsupported component type: {kind}.')
-    try:
-        solution = np.linalg.solve(A, b)
-    except np.linalg.LinAlgError as error:
-        raise ValueError('No unique DC solution. Check floating nodes, feedback and conflicting or redundant ideal sources.') from error
-    if not np.all(np.isfinite(solution)):
-        raise ValueError('No finite DC solution.')
+    # Feed-forward stages may depend on earlier comparator outputs. Start at
+    # their low levels, solve the complete loaded circuit, then update levels.
+    # No answer is returned until EVERY output agrees with its input comparison.
+    # An acyclic chain of N comparators settles in at most N+1 solves.
+    seen = set()
+    for _ in range(len(comparators) + 2):
+        try:
+            solution = np.linalg.solve(A, b)
+        except np.linalg.LinAlgError as error:
+            raise ValueError('No unique DC solution. Check floating nodes, feedback and conflicting or redundant ideal sources.') from error
+        if not np.all(np.isfinite(solution)):
+            raise ValueError('No finite DC solution.')
+        voltages = {'0': 0.0, **{n: float(solution[i]) for n, i in node_index.items()}}
+        changes, undecided = [], []
+        for p in comparators:
+            k = len(nodes) + voltage_sources.index(p)
+            state = comparator_state(p, voltages)
+            if state == 'UNDEFINED':
+                undecided.append(p['name'])
+                continue
+            level = p.get('v_max', 15) if state == 'HIGH' else p.get('v_min', -15)
+            if b[k] != level:
+                changes.append((k, level))
+        if not changes:
+            if undecided:
+                raise ValueError(', '.join(undecided) + ': inputs are equal or within 1 nV. The ideal open-loop output is undefined at the switching threshold; change the input/reference. No rail is guessed.')
+            break
+        signature = tuple(b[len(nodes) + voltage_sources.index(p)] for p in comparators)
+        if signature in seen:
+            raise ValueError('No consistent open-loop DC state. Check for an unsupported feedback loop.')
+        seen.add(signature)
+        for k, level in changes:
+            b[k] = level
+    else:
+        raise ValueError('Open-loop stages did not settle to a consistent DC state. Check feedback connections.')
     if check_rails:
         for p in components:
             if p['type'] == 'OPAMP':
@@ -69,7 +106,7 @@ def solve_circuit(components, *, check_rails=True):
                 low, high = p.get('v_min', -15), p.get('v_max', 15)
                 tolerance = 1e-9 * max(1, abs(low), abs(high))
                 if output < low - tolerance or output > high + tolerance:
-                    raise ValueError(f"{p['name']} needs {output:.6g} V, outside its {low:g} to {high:g} V output limits. It would saturate; V+ = V− is no longer valid. Reduce the input/gain or change the limits. Saturation is not simulated.")
+                    raise ValueError(f"{p['name']} needs {output:.6g} V, outside its {low:g} to {high:g} V output limits. It would saturate; V+ = V− is no longer valid. Reduce the input/gain or change the limits. Closed-loop saturation is not simulated; open-loop comparators use a separate mode.")
     return nodes, node_index, voltage_sources, solution
 
 
@@ -88,6 +125,8 @@ def open_circuit_voltage(circuit, node1, node2='0', load=None):
 
 
 def thevenin(circuit, node1, node2='0', load=None):
+    if any(p['type'] == 'OPAMP' and opamp_mode(p) == 'open_loop' for p in circuit):
+        raise ValueError('Thevenin/Norton require a linear circuit. Open-loop comparators switch between limits; use Node voltage or Open-circuit voltage instead. A small-signal equivalent is not implemented.')
     if node1 == node2:
         raise ValueError('Choose two different port nodes.')
     Vth = open_circuit_voltage(circuit, node1, node2, load)

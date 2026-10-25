@@ -1,5 +1,6 @@
 """Run the real Streamlit registration and sample solve when installed."""
 from pathlib import Path
+from copy import deepcopy
 import unittest
 from unittest.mock import patch
 
@@ -16,6 +17,74 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @unittest.skipIf(AppTest is None, 'Install requirements.txt to check real Streamlit')
 class StreamlitIntegrationTests(unittest.TestCase):
+    def test_practice_hints_checking_and_reveal_are_explicit(self):
+        app = AppTest.from_file(str(ROOT / 'drawing_app.py')).run()
+        next(b for b in app.button if b.label == 'Start practice question').click().run()
+        self.assertFalse(app.exception, [e.message for e in app.exception])
+        self.assertFalse(app.metric)
+        self.assertFalse(app.session_state['practice_active']['revealed'])
+        next(t for t in app.text_input if t.label == 'Your predicted answer').set_value('7')
+        next(b for b in app.button if b.label == 'Check my answer').click().run()
+        self.assertFalse(app.session_state['practice_active']['revealed'])
+        self.assertTrue(any('Try again' in m.value for m in app.info))
+        next(b for b in app.button if b.label == 'Show next hint').click().run()
+        self.assertEqual(app.session_state['practice_active']['hints'], 1)
+        next(s for s in app.selectbox if s.label == 'Answer unit').set_value('mV')
+        next(t for t in app.text_input if t.label == 'Your predicted answer').set_value('8000')
+        next(b for b in app.button if b.label == 'Check my answer').click().run()
+        self.assertFalse(app.exception, [e.message for e in app.exception])
+        self.assertTrue(app.session_state['practice_active']['revealed'])
+        record = app.session_state['practice_progress']['divider_voltage']
+        self.assertTrue(record['correct'])
+        self.assertEqual(record['attempts'], 2)
+        self.assertFalse(app.metric, 'practice must not silently run the regular solver')
+
+    def test_practice_rejects_changed_circuits_and_keeps_progress_across_questions(self):
+        app = AppTest.from_file(str(ROOT / 'drawing_app.py')).run()
+        next(b for b in app.button if b.label == 'Start practice question').click().run()
+        next(b for b in app.button if b.label == 'Reveal worked answer').click().run()
+        self.assertFalse(app.session_state['practice_progress']['divider_voltage']['correct'])
+        key = f"circuit_canvas_{app.session_state['canvas_revision']}"
+        drawing = deepcopy(app.session_state[key]['drawing'])
+        drawing['items'][0]['x'] += 40
+        app.session_state[key] = {'drawing': drawing, 'node_request': None}
+        app.run()
+        self.assertTrue(any(b.label == 'Check my answer' for b in app.button))
+        drawing['items'][0]['value'] = 24
+        app.session_state[key] = {'drawing': drawing, 'node_request': None}
+        app.run()
+        self.assertTrue(any('circuit changed' in w.value for w in app.warning))
+        self.assertFalse(any(b.label == 'Check my answer' for b in app.button))
+        next(s for s in app.selectbox if s.label == 'Practice question').set_value('4 · Signed branch current').run()
+        next(b for b in app.button if b.label == 'Start practice question').click().run()
+        self.assertFalse(app.exception, [e.message for e in app.exception])
+        self.assertEqual(app.session_state['practice_active']['id'], 'branch_direction')
+        self.assertEqual(app.session_state['question_kind'], 'Branch current')
+        self.assertEqual(app.session_state['question_branch'], 'R3')
+        self.assertIn('divider_voltage', app.session_state['practice_progress'])
+        next(b for b in app.button if b.label == 'Load worked example').click().run()
+        self.assertNotIn('practice_active', app.session_state)
+
+    def test_practice_selection_does_not_change_an_active_key_until_start(self):
+        app = AppTest.from_file(str(ROOT / 'drawing_app.py')).run()
+        next(b for b in app.button if b.label == 'Start practice question').click().run()
+        next(t for t in app.text_input if t.label == 'Your predicted answer').set_value('nan')
+        next(b for b in app.button if b.label == 'Check my answer').click().run()
+        self.assertEqual(app.session_state['practice_progress']['divider_voltage']['attempts'], 0)
+        next(s for s in app.selectbox if s.label == 'Practice question').set_value('6 · Resistance seen at a port').run()
+        self.assertEqual(app.session_state['practice_active']['id'], 'divider_voltage')
+        next(b for b in app.button if b.label == 'Start practice question').click().run()
+        self.assertFalse(app.exception, [e.message for e in app.exception])
+        self.assertEqual(app.session_state['practice_active']['id'], 'bridge_resistance')
+        self.assertEqual(app.session_state['practice_answer'], '')
+        self.assertEqual(app.session_state['practice_unit'], 'kΩ')
+        self.assertEqual(app.session_state['question_kind'], 'Thevenin')
+        self.assertEqual(app.session_state['question_reference'], 'Vb')
+        self.assertEqual(app.session_state['removed_load'], 'R5')
+        next(t for t in app.text_input if t.label == 'Your predicted answer').set_value('1.333')
+        next(b for b in app.button if b.label == 'Check my answer').click().run()
+        self.assertTrue(app.session_state['practice_progress']['bridge_resistance']['correct'])
+
     def test_load_bridge_and_run_reference_checks_without_changing_the_drawing(self):
         with patch.dict('sys.modules', {'engine': reference_engine}):
             app = AppTest.from_file(str(ROOT / 'drawing_app.py')).run()
@@ -29,7 +98,7 @@ class StreamlitIntegrationTests(unittest.TestCase):
             next(b for b in app.button if b.label == 'Run solver checks').click().run()
             self.assertFalse(app.exception, [e.message for e in app.exception])
             rows = app.session_state['solver_check_results']
-            self.assertEqual(len(rows), 9)
+            self.assertEqual(len(rows), 11)
             self.assertTrue(all(row['Result']=='PASS' for row in rows))
             self.assertEqual(before, json.dumps(app.session_state[key]['drawing'], sort_keys=True))
 
@@ -167,3 +236,102 @@ class StreamlitIntegrationTests(unittest.TestCase):
         self.assertIn('12 V',[m.value for m in app.metric])
         self.assertIsNone(app.session_state['analysis_result']['lesson'])
         self.assertEqual(app.session_state['analysis_result']['measurement']['voltage'],12)
+
+    def test_open_loop_example_teaches_high_decision_and_shows_hand_reference(self):
+        app = self.load_reference('comparator_high')
+        next(c for c in app.checkbox if c.label=='Show this example’s hand-calculated reference').check().run()
+        next(b for b in app.button if b.label=='Solve drawing').click().run()
+        self.assertFalse(app.exception,[e.message for e in app.exception])
+        self.assertFalse(app.error,[e.value for e in app.error])
+        self.assertIn('5 V',[m.value for m in app.metric])
+        active=app.session_state['analysis_result']
+        self.assertEqual(active['amplifiers'],[dict(name='U1',state='HIGH',voltage=5)])
+        self.assertEqual(active['lesson']['voltages']['Vin'],3)
+        self.assertEqual(active['lesson']['voltages']['Vref'],2)
+        app.radio[0].set_value('3 · KCL').run()
+        self.assertTrue(any('Open-loop HIGH' in e['label'] for e in app.session_state['analysis_result']['lesson']['equations']))
+        next(s for s in app.selectbox if s.label=='Find').set_value('Thevenin').run()
+        next(b for b in app.button if b.label=='Solve drawing').click().run()
+        self.assertFalse(app.metric)
+        self.assertTrue(any('require a linear circuit' in e.value for e in app.error))
+        self.assertFalse(app.exception)
+
+    def test_comparator_open_output_has_zero_output_current_and_retains_low_voltage(self):
+        app=self.load_reference('comparator_low')
+        next(s for s in app.selectbox if s.label=='Find').set_value('Open-circuit voltage').run()
+        next(s for s in app.selectbox if s.label=='Load to remove').set_value('RL').run()
+        next(b for b in app.button if b.label=='Solve drawing').click().run()
+        self.assertFalse(app.exception,[e.message for e in app.exception])
+        self.assertFalse(app.error,[e.value for e in app.error])
+        self.assertIn('-12 V',[m.value for m in app.metric])
+        active=app.session_state['analysis_result']
+        self.assertEqual(active['amplifiers'][0]['state'],'LOW')
+        self.assertEqual(next(p for p in active['lesson']['branches'] if p['name']=='U1')['current'],0)
+        self.assertEqual(active['measurement']['removedLoad'],'RL')
+
+    def test_comparator_source_edit_clears_high_and_equal_input_has_no_stale_answer(self):
+        app=self.load_reference('comparator_high')
+        next(b for b in app.button if b.label=='Solve drawing').click().run()
+        key=f"circuit_canvas_{app.session_state['canvas_revision']}"
+        from examples import get_examples
+        model=next(e['drawing'] for e in get_examples() if e['id']=='comparator_high')
+        model['items'][0]['value']=1
+        model['revision']=1
+        app.session_state[key]={'drawing':model}
+        app.run()
+        self.assertFalse(app.metric)
+        next(b for b in app.button if b.label=='Solve drawing').click().run()
+        self.assertIn('0 V',[m.value for m in app.metric])
+        self.assertEqual(app.session_state['analysis_result']['amplifiers'][0]['state'],'LOW')
+        model['items'][0]['value']=2
+        model['revision']=2
+        app.session_state[key]={'drawing':model}
+        app.run()
+        next(b for b in app.button if b.label=='Solve drawing').click().run()
+        self.assertFalse(app.metric)
+        self.assertNotIn('analysis_result',app.session_state)
+        self.assertTrue(any('undefined at the switching threshold' in e.value for e in app.error))
+        self.assertFalse(app.exception)
+
+    def test_spice_export_matches_selected_unloaded_configuration(self):
+        app=self.load_reference('inverting')
+        next(s for s in app.selectbox if s.label=='Find').set_value('Open-circuit voltage').run()
+        next(s for s in app.selectbox if s.label=='Load to remove').set_value('RL').run()
+        next(b for b in app.button if b.label=='Solve drawing').click().run()
+        next(s for s in app.selectbox if s.label=='Circuit configuration').set_value('Current solved circuit').run()
+        next(b for b in app.button if b.label=='Prepare SPICE export').click().run()
+        self.assertFalse(app.exception,[e.message for e in app.exception])
+        self.assertFalse(app.error,[e.value for e in app.error])
+        result=app.session_state['spice_export']['payload']
+        self.assertEqual(result['removed_load'],'RL')
+        self.assertNotIn('RL',result['element_map'])
+        self.assertIn('Rf',result['element_map'])
+        next(s for s in app.selectbox if s.label=='Circuit configuration').set_value('Full drawing').run()
+        next(b for b in app.button if b.label=='Prepare SPICE export').click().run()
+        self.assertIn('RL',app.session_state['spice_export']['payload']['element_map'])
+
+    def test_comparator_ngspice_export_and_undefined_threshold_fail_cleanly(self):
+        app=self.load_reference('comparator_high')
+        next(s for s in app.selectbox if s.label=='SPICE format').set_value('ngspice').run()
+        next(b for b in app.button if b.label=='Prepare SPICE export').click().run()
+        self.assertFalse(app.exception,[e.message for e in app.exception])
+        self.assertIn('>0 ? 5 : 0',app.session_state['spice_export']['payload']['netlist'])
+        from examples import get_examples
+        model=next(e['drawing'] for e in get_examples() if e['id']=='comparator_high')
+        model['items'][0]['value']=2
+        key=f"circuit_canvas_{app.session_state['canvas_revision']}"
+        app.session_state[key]={'drawing':model}
+        app.run()
+        next(b for b in app.button if b.label=='Prepare SPICE export').click().run()
+        self.assertNotIn('spice_export',app.session_state)
+        self.assertTrue(any('undefined at the switching threshold' in e.value for e in app.error))
+        self.assertFalse(app.exception)
+
+    def test_independent_spice_report_is_shown_without_running_a_simulator_in_the_app(self):
+        from verification import load_spice_report
+        report,reason=load_spice_report()
+        self.assertIsNotNone(report,reason)
+        app=AppTest.from_file(str(ROOT/'drawing_app.py')).run()
+        next(c for c in app.checkbox if c.label=='Show independent SPICE verification').check().run()
+        self.assertFalse(app.exception,[e.message for e in app.exception])
+        self.assertTrue(any('29/29 external DC configurations' in s.value for s in app.success))

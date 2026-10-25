@@ -37,6 +37,31 @@ def amplifier_examples(part, drawing):
         part('OUT1','PORT',None,840,340),part('GND1','GROUND',None,200,620),
     ], [('V1:1','R1:1','vh'),('R1:2','OUT1:1','hv'),
         ('V1:2','GND1:1','vh'),('OUT1:2','GND1:1','vh',[(880,540),(200,540)])])
+    def comparator_example(identifier, title, signal, low, high, resistance):
+        u = amp()
+        u.update(mode='open_loop', label2='', v_min=low, v_max=high)
+        model = drawing([
+            part('V1','V',signal,200,220,90,'Vin'),
+            part('V2','V',2,200,480,90,'Vref'),u,
+            part('RL','R',resistance,900,460,90),part('OUT1','PORT',None,960,280),
+            part('GND1','GROUND',None,280,320),
+            part('GND2','GROUND',None,200,640),part('GND3','GROUND',None,900,640),
+        ], [('V1:1','U1:1','vh',[(200,140),(500,140),(500,320)]),
+            ('V1:2','GND1:1','vh'),('V2:1','U1:2','vh',[(200,360),(500,360)]),
+            ('V2:2','GND2:1','vh'),('U1:3','RL:1','hv'),('RL:2','GND3:1','vh'),
+            ('U1:3','OUT1:1','hv',[(840,340),(840,280)]),
+            ('OUT1:2','GND3:1','vh',[(1000,580),(900,580)])])
+        output = high if signal > 2 else low
+        state = 'HIGH' if signal > 2 else 'LOW'
+        return dict(id=identifier, title=title, drawing=model,
+            description=f'Compare {signal:g} V at + with a 2 V reference at −. No feedback; {state} selects {output:g} V with output limits {low:g} to {high:g} V.',
+            expected_v={'0':0,'Vin':signal,'Vref':2,'Vout':output},
+            expected_i={'V1':0,'V2':0,'U1':-output/resistance,'RL':output/resistance}, port=None,
+            hand=[f'V+ − V− = {signal:g} − 2 = {signal-2:g} V, so the ideal open-loop output is {state} at {output:g} V. Do not set the inputs equal.',
+                  f'Input currents are zero. The {resistance:g} Ω load current is {output:g}/{resistance:g} = {output/resistance:g} A from output toward ground.',
+                  'Remove RL using Open-circuit voltage to see that the voltage stays at its selected limit while output current becomes zero. Thévenin/Norton checks are skipped because the switching model is nonlinear.'],
+            equations=[r'V_+-V_-='+str(signal-2)+r'\ \mathrm{V}',
+                       r'V_{out}='+str(output)+r'\ \mathrm{V},\qquad I_+=I_-=0'])
     return [
         dict(id='inverting',title='Op amp · inverting amplifier (−2 V)', drawing=inv,
              description='A 1 V input, 10 kΩ input resistor and 20 kΩ feedback resistor give −2 V. Remove only RL for an open external output.',
@@ -69,4 +94,6 @@ def amplifier_examples(part, drawing):
              hand=['An open external output carries no load current. KCL at Vout forces the resistor current to zero.',
                    'I = 0 means the resistor drops 0 V, so Vout = Vin = 12 V. This output is not floating: the source and resistor determine its voltage.'],
              equations=[r'\frac{V_{out}-12}{1000}=0\quad\Rightarrow\quad V_{out}=12\ \mathrm{V}']),
+        comparator_example('comparator_high','Open loop · comparator HIGH (5 V)',3,0,5,1000),
+        comparator_example('comparator_low','Open loop · comparator LOW (−12 V)',1,-12,12,2000),
     ]

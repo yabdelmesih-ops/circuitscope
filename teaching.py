@@ -1,11 +1,11 @@
-"""Build circuit-specific explanations from the engine's solved R/V/I circuit.
+"""Build circuit-specific explanations from the solved circuit and device modes.
 
 Equations use unknown voltages first. Solved numbers are used separately to
 check them, so an unknown neighbor is never presented as a given voltage.
 """
 from hashlib import sha256
 import json
-from circuit_model import branch_nodes, branch_current
+from circuit_model import branch_nodes, branch_current, opamp_mode, comparator_state
 
 
 def circuit_signature(components):
@@ -105,7 +105,10 @@ def build_lesson(components, node, reference, node_index, voltage_sources, solut
             count = None
         if p['type'] == 'OPAMP':
             action = 'into' if current > 0 else 'out of' if current < 0 else 'at'
-            why = f"{p['name']}: {current_label(current)} {action} the output. Both input currents are zero. Negative feedback makes V+ = V− in this linear solution; the inputs remain separate nodes. Power comes through implicit supply terminals."
+            if opamp_mode(p) == 'open_loop':
+                why = f"{p['name']}: open-loop {comparator_state(p, voltages)} output at {number(voltages[p['node3']])} V. V+ is {number(voltages[p['node1']])} V and V− is {number(voltages[p['node2']])} V; they are not forced equal. {current_label(current)} flows {action} OUT. Both input currents are zero; output energy comes through implicit supplies."
+            else:
+                why = f"{p['name']}: {current_label(current)} {action} the output. Both input currents are zero. Negative feedback makes V+ = V− in this linear solution; the inputs remain separate nodes. Power comes through implicit supply terminals."
         elif current == 0:
             why = f"{p['name']}: no current flows in this solved branch."
             if p['type'] == 'R':
@@ -129,8 +132,14 @@ def build_lesson(components, node, reference, node_index, voltage_sources, solut
     residual = outgoing - incoming
     known = known_from_sources(components)
     equations = [{'label': f'KCL at {n}', 'latex': kcl_equation(components, n)} for n in node_index]
-    equations += [{'label': f"{'Linear feedback' if p['type'] == 'OPAMP' else 'Constraint'} from {p['name']}", 'latex': symbol(p['node1']) + '-' + symbol(p['node2']) + '=' + ('0' if p['type'] == 'OPAMP' else math_number(p['value']))}
-                  for p in voltage_sources]
+    for p in voltage_sources:
+        if p['type'] == 'OPAMP' and opamp_mode(p) == 'open_loop':
+            state = comparator_state(p, voltages)
+            relation = '>' if state == 'HIGH' else '<'
+            equations.append({'label': f"Open-loop {state} decision from {p['name']}",
+                'latex': symbol(p['node1']) + relation + symbol(p['node2']) + r'\quad\Rightarrow\quad' + symbol(p['node3']) + '=' + math_number(voltages[p['node3']]) + r'\ \mathrm{V}'})
+        else:
+            equations.append({'label': f"{'Linear feedback' if p['type'] == 'OPAMP' else 'Constraint'} from {p['name']}", 'latex': symbol(p['node1']) + '-' + symbol(p['node2']) + '=' + ('0' if p['type'] == 'OPAMP' else math_number(p['value']))})
     algebra = []
     if node in known:
         algebra.append({'text': 'Ground and connected voltage sources already set this node voltage.',
@@ -151,10 +160,19 @@ def build_lesson(components, node, reference, node_index, voltage_sources, solut
         else:
             algebra.append({'text': 'Neighboring unknown voltages and voltage-source currents must be solved together. The full equation set below shows those dependencies.', 'latex': ''})
     tolerance = 1e-12 + 1e-8 * max(incoming, outgoing)
+    feedback_amps = [p for p in components if p['type'] == 'OPAMP' and opamp_mode(p) == 'feedback']
+    open_amps = [p for p in components if p['type'] == 'OPAMP' and opamp_mode(p) == 'open_loop']
     amp_notes = [f"{p['name']}: I+ = I− = 0. Feedback holds V({p['node1']}) = V({p['node2']}) = {number(voltages[p['node1']])} V. Equal voltage does not mean a wire joins the inputs. Output is {number(voltages[p['node3']])} V within {p.get('v_min', -15):g} to {p.get('v_max', 15):g} V limits."
-                 for p in components if p['type'] == 'OPAMP']
-    if amp_notes:
+                 for p in feedback_amps]
+    for p in open_amps:
+        state = comparator_state(p, voltages)
+        difference = voltages[p['node1']] - voltages[p['node2']]
+        amp_notes.append(f"{p['name']} OPEN LOOP: V+ = {number(voltages[p['node1']])} V, V− = {number(voltages[p['node2']])} V; difference = {number(difference)} V. The {'positive' if state == 'HIGH' else 'negative'} difference selects {state}, the configured {'maximum' if state == 'HIGH' else 'minimum'} output of {number(voltages[p['node3']])} V. I+ = I− = 0. No feedback means V+ = V− does not apply. This is an ideal DC comparator decision, not a switching-time simulation.")
+    if feedback_amps:
         algebra.insert(0, {'text': 'Use zero input currents and V+ = V− together with KCL. These ideal rules apply here because negative feedback is connected and the output is within its limits.', 'latex': r'I_+=I_-=0,\qquad V_+=V_-'})
+    if open_amps:
+        algebra.insert(0, {'text': 'For open-loop devices, compare the input voltages and select the configured output limit. Do not use the feedback equality rule. KCL still applies, with zero input currents.',
+            'latex': r'V_{out}=\begin{cases}V_{high}&V_+>V_-\\V_{low}&V_+<V_-\end{cases},\qquad I_+=I_-=0'})
     return {'node': node, 'reference': reference, 'node_voltage': voltages[node],
             'reference_voltage': voltages[reference], 'answer': voltages[node] - voltages[reference],
             'voltages': voltages, 'branches': branches, 'incident': incident,
@@ -168,7 +186,7 @@ def build_lesson(components, node, reference, node_index, voltage_sources, solut
                 [b['why'] for b in incident] + amp_notes + ['Arrows show conventional current. Electron motion in a metal is opposite. Arrow length does not represent charge speed.'],
                 ['Treat currents leaving the selected node as positive. A negative term means that branch actually brings current into the node.',
                  'For a resistor, the outward current is (selected-node voltage − other-node voltage) / resistance. Voltage-source currents are separate unknowns.',
-                 'Charge does not accumulate at an ideal steady-state node, so the signed sum of its branch currents is zero.'],
+                 'Charge does not accumulate at an ideal steady-state node, so the signed sum of its branch currents is zero.'] + amp_notes,
                 [f"Entering: {current_label(incoming)}. Leaving: {current_label(outgoing)}. Their difference is {number(residual)} A.",
                  'Current divides across available branches according to the full circuit. Resistors transfer electrical energy into heat; they do not consume charge.']
             ]}

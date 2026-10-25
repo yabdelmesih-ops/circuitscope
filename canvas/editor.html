@@ -34,6 +34,7 @@
       <label>Pin 1 node label<input id="label-1" placeholder="optional: Va" maxlength="12"></label>
       <label id="label-2-field">Pin 2 node label<input id="label-2" placeholder="optional" maxlength="12"></label>
       <label id="label-3-field" hidden>OUT node label<input id="label-3" placeholder="optional: Vout" maxlength="12"></label>
+      <label id="opamp-mode-field" hidden>Op-amp operation<select id="opamp-mode"><option value="feedback">Negative feedback (linear)</option><option value="open_loop">Open loop (comparator)</option></select></label>
       <label id="rail-min-field" hidden>Output minimum (V)<input id="rail-min" type="number" step="any"></label>
       <label id="rail-max-field" hidden>Output maximum (V)<input id="rail-max" type="number" step="any"></label>
       <button id="apply" type="submit">Apply</button>

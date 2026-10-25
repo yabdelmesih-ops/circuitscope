@@ -16,3 +16,21 @@ svg[data-tool="explain"],svg[data-tool="explain"] .component,svg[data-tool="expl
 svg[data-tool="explain"] .wire:hover .wire-line{stroke:#8755cd;stroke-width:4}
 .measurement-info{padding:11px 17px;background:#faf3ff;border-top:1px solid #dfcce9;color:#71418d;line-height:1.6;font-size:12px}
 .removed-load .hit{stroke:#dfb27e;stroke-dasharray:4 3}#part-help{color:#63826b;font-size:11px;max-width:900px}
+select{font:inherit;padding:7px 9px;border:1px solid #dce8df;border-radius:4px;color:#426e47;min-height:32px;max-width:230px}select:focus-visible{outline:2px solid #23835e;outline-offset:2px}
+
+/* The v2 component's inner wrappers have auto height. A percentage here grows
+   with the inventory instead of matching the 820px Streamlit viewport. */
+#editor{height:820px;min-height:0}
+.bar,.hint,#properties,.measurement-info{flex-shrink:0}
+.work-area{min-height:0;overflow:auto}
+#inventory{overflow-y:auto;min-height:0}
+#inventory button{font-size:12px;padding:6px 7px;margin:4px 0}
+#inventory button strong{font-size:20px;line-height:1}
+#inventory p{font-size:11px;line-height:1.6;color:#536d58}
+.paper{min-height:0;overflow:hidden}
+#canvas{display:block;min-height:0}
+#status{font-size:12px;color:#536d58}
+.hint{font-size:11px;color:#536d58}
+#property-fields label{font-size:11px;color:#536d58}
+@media(max-width:1100px){.paper{min-height:320px}aside.lesson-notes{max-height:180px;flex-shrink:0}}
+@media(max-width:450px){#inventory{max-height:140px;flex-shrink:0}#inventory button{font-size:10px;margin:1px 0;padding:5px}.paper{flex-basis:100%;min-height:290px;flex-shrink:0}.work-area{align-content:flex-start}.hint{font-size:10px}#properties{padding:10px}}

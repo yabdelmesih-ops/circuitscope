@@ -1,0 +1,100 @@
+{
+  "schema": "circuitscope.browser-check.v1",
+  "generated_utc": "2026-10-23T21:01:46.483Z",
+  "platform": "linux",
+  "source_hashes": {
+    "drawing_app.py": "f55f36dbdb3489cd0336f4ebbbea340e0b82a72c705796cea96a16d881ad51f2",
+    "practice.py": "6435394b272883d4800b67bd51d31439950022b9a559f97839f73fd5ed5785a1",
+    "practice_ui.py": "35b77ca2ecb31a1e5fb532f9196562dcf8bcbe871e6ecd2e772b5150c4f1bb9b",
+    "canvas/editor.js": "7e9c5e0c20808e6a731cc7271c42ec533d460a75945314b3dbf10943a08043ad",
+    "canvas/editor.html": "0b4b413a99d92d13e90c51ecdd1baf56a0767c390521ceb2dad2788eceb54dae",
+    "canvas/editor.css": "dd2128a4438ec7679c542a3901820531190c0d99103dfe8d6450c47160baa393",
+    "engine.py": "9c9cf6e5afbfdd754e74f2a365cd12375856d0a341b36d90ee987246444212d3",
+    "circuit_model.py": "52757ca55a10d0cfb5dba03cb99955a65d6015a573747569410c0f7d4f373a85",
+    "topology.py": "ecf6ae9c19fb5df8ece0cdb84eedfc489f113a7866ed57d3e224f0dc2f0bf37b",
+    "teaching.py": "919e2b3b4955a20018922d57fbc3cf130d3665fc9b584117a9d9eb5b4bf09b69",
+    "examples.py": "472398c6c75de51d476749a03434e80b96835f79462043405735b36d89f8473c",
+    "opamp_examples.py": "256e4c7d024b20ca146a109bc465fb6da965ccd93b38a6775f86f70b4db90d84",
+    "verification.py": "50b53d7a44b41d652ac874dac0a3b3d31fd4e187f70fb5c0058cc1d821649f43",
+    "spice_export.py": "2205ec708524422f4fe8200b7cca0237bb9cbfcbecbf7367fa93f46c9716a3ef",
+    "requirements.txt": "03581847b313c5b3ce150f6b571019459eed9d675abe86fc0a526aec9b58405a",
+    "package.json": "9fbeaf3759a4eef335fc5969d66496bccac5d46a40cbf52fe570d66f692b1d08",
+    "tests/browser-smoke.mjs": "10d73e2f351599872d4490495dd0606184d16a923b89384783b09c06cc27fe12"
+  },
+  "rows": [
+    {
+      "Check": "Empty startup and bounded desktop editor",
+      "Result": "PASS",
+      "Milliseconds": 33
+    },
+    {
+      "Check": "Native inventory drag-and-drop and terminal wiring reach Python",
+      "Result": "PASS",
+      "Milliseconds": 4940
+    },
+    {
+      "Check": "Explain-node click produces a live visual lesson",
+      "Result": "PASS",
+      "Milliseconds": 166
+    },
+    {
+      "Check": "Property edit and Undo invalidate and recalculate results",
+      "Result": "PASS",
+      "Milliseconds": 1326
+    },
+    {
+      "Check": "Wire branching creates one junction and an unloaded probe reads voltage",
+      "Result": "PASS",
+      "Milliseconds": 3071
+    },
+    {
+      "Check": "Cancel a pending wire, clear, and Undo preserve saved drawing",
+      "Result": "PASS",
+      "Milliseconds": 401
+    },
+    {
+      "Check": "SPICE download contains the current full circuit",
+      "Result": "PASS",
+      "Milliseconds": 358
+    },
+    {
+      "Check": "Feedback op amp and removed-load overlay solve through the browser",
+      "Result": "PASS",
+      "Milliseconds": 4608
+    },
+    {
+      "Check": "Open-loop HIGH, LOW and equality handling have no stale result",
+      "Result": "PASS",
+      "Milliseconds": 3008
+    },
+    {
+      "Check": "Independent SPICE report can be inspected",
+      "Result": "PASS",
+      "Milliseconds": 157
+    },
+    {
+      "Check": "Lesson and op-amp properties remain bounded at tablet and mobile widths",
+      "Result": "PASS",
+      "Milliseconds": 877
+    },
+    {
+      "Check": "Guided practice checks units, reveals on success and rejects changed circuits",
+      "Result": "PASS",
+      "Milliseconds": 2049
+    },
+    {
+      "Check": "Practice reveal is optional and signed current is graded in milliamps",
+      "Result": "PASS",
+      "Milliseconds": 2533
+    },
+    {
+      "Check": "No client JavaScript errors during the workflows",
+      "Result": "PASS",
+      "Milliseconds": 1
+    }
+  ],
+  "scope": "Real Chromium mouse/keyboard/HTML drag-and-drop, Streamlit component transport, downloads, guided practice and responsive layout checks at 1440, 1024 and 390 pixels. This is a headless browser run on the recorded platform; it does not establish native Windows, physical touch, Safari or Firefox behavior.",
+  "browser": "153.0.8010.0",
+  "client_errors": [],
+  "status": "PASS"
+}

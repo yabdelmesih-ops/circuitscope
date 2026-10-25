@@ -1,0 +1,265 @@
+{
+  "schema": "circuitscope.spice-check.v1",
+  "generated_utc": "2026-10-23T16:54:46.473312+00:00",
+  "simulator": "ngspice-42 : Circuit level simulation program",
+  "source_hashes": {
+    "engine.py": "9c9cf6e5afbfdd754e74f2a365cd12375856d0a341b36d90ee987246444212d3",
+    "circuit_model.py": "52757ca55a10d0cfb5dba03cb99955a65d6015a573747569410c0f7d4f373a85",
+    "topology.py": "ecf6ae9c19fb5df8ece0cdb84eedfc489f113a7866ed57d3e224f0dc2f0bf37b",
+    "examples.py": "472398c6c75de51d476749a03434e80b96835f79462043405735b36d89f8473c",
+    "opamp_examples.py": "256e4c7d024b20ca146a109bc465fb6da965ccd93b38a6775f86f70b4db90d84",
+    "verification.py": "50b53d7a44b41d652ac874dac0a3b3d31fd4e187f70fb5c0058cc1d821649f43",
+    "spice_export.py": "2205ec708524422f4fe8200b7cca0237bb9cbfcbecbf7367fa93f46c9716a3ef",
+    "spice_validate.py": "e1b4ee6fe84ca10e3448d51451078483c73759fc2fa9d44577311b61b32f04ae"
+  },
+  "rows": [
+    {
+      "Circuit": "Worked example \u00b7 parallel paths",
+      "Configuration": "drawing",
+      "Result": "PASS",
+      "Checks": 14,
+      "Max_voltage_error_V": 8.881784197001252e-16,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    },
+    {
+      "Circuit": "Worked example \u00b7 parallel paths",
+      "Configuration": "open_port",
+      "Result": "PASS",
+      "Checks": 7,
+      "Max_voltage_error_V": 1.7763568394002505e-15,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    },
+    {
+      "Circuit": "Worked example \u00b7 parallel paths",
+      "Configuration": "resistance_test",
+      "Result": "PASS",
+      "Checks": 8,
+      "Max_voltage_error_V": 0.0,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    },
+    {
+      "Circuit": "Voltage divider \u00b7 8 V output",
+      "Configuration": "drawing",
+      "Result": "PASS",
+      "Checks": 12,
+      "Max_voltage_error_V": 0.0,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    },
+    {
+      "Circuit": "Voltage divider \u00b7 8 V output",
+      "Configuration": "open_port",
+      "Result": "PASS",
+      "Checks": 7,
+      "Max_voltage_error_V": 0.0,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    },
+    {
+      "Circuit": "Voltage divider \u00b7 8 V output",
+      "Configuration": "resistance_test",
+      "Result": "PASS",
+      "Checks": 8,
+      "Max_voltage_error_V": 0.0,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    },
+    {
+      "Circuit": "Current source \u00b7 6 V node",
+      "Configuration": "drawing",
+      "Result": "PASS",
+      "Checks": 8,
+      "Max_voltage_error_V": 0.0,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    },
+    {
+      "Circuit": "Current source \u00b7 6 V node",
+      "Configuration": "open_port",
+      "Result": "PASS",
+      "Checks": 5,
+      "Max_voltage_error_V": 0.0,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    },
+    {
+      "Circuit": "Current source \u00b7 6 V node",
+      "Configuration": "resistance_test",
+      "Result": "PASS",
+      "Checks": 6,
+      "Max_voltage_error_V": 0.0,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    },
+    {
+      "Circuit": "Floating voltage source \u00b7 negative node voltage",
+      "Configuration": "drawing",
+      "Result": "PASS",
+      "Checks": 12,
+      "Max_voltage_error_V": 0.0,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    },
+    {
+      "Circuit": "Floating voltage source \u00b7 negative node voltage",
+      "Configuration": "open_port",
+      "Result": "PASS",
+      "Checks": 7,
+      "Max_voltage_error_V": 0.0,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    },
+    {
+      "Circuit": "Floating voltage source \u00b7 negative node voltage",
+      "Configuration": "resistance_test",
+      "Result": "PASS",
+      "Checks": 8,
+      "Max_voltage_error_V": 1.1368683772161603e-13,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    },
+    {
+      "Circuit": "Resistor bridge \u00b7 coupled nodes and Th\u00e9venin",
+      "Configuration": "drawing",
+      "Result": "PASS",
+      "Checks": 20,
+      "Max_voltage_error_V": 8.881784197001252e-16,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    },
+    {
+      "Circuit": "Resistor bridge \u00b7 coupled nodes and Th\u00e9venin",
+      "Configuration": "open_port",
+      "Result": "PASS",
+      "Checks": 10,
+      "Max_voltage_error_V": 8.881784197001252e-16,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    },
+    {
+      "Circuit": "Resistor bridge \u00b7 coupled nodes and Th\u00e9venin",
+      "Configuration": "resistance_test",
+      "Result": "PASS",
+      "Checks": 11,
+      "Max_voltage_error_V": 0.0,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    },
+    {
+      "Circuit": "Op amp \u00b7 inverting amplifier (\u22122 V)",
+      "Configuration": "drawing",
+      "Result": "PASS",
+      "Checks": 18,
+      "Max_voltage_error_V": 6.000000052353016e-09,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    },
+    {
+      "Circuit": "Op amp \u00b7 inverting amplifier (\u22122 V)",
+      "Configuration": "open_port",
+      "Result": "PASS",
+      "Checks": 9,
+      "Max_voltage_error_V": 6.000000052353016e-09,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    },
+    {
+      "Circuit": "Op amp \u00b7 inverting amplifier (\u22122 V)",
+      "Configuration": "resistance_test",
+      "Result": "PASS",
+      "Checks": 10,
+      "Max_voltage_error_V": 0.0,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    },
+    {
+      "Circuit": "Op amp \u00b7 non-inverting amplifier (3 V)",
+      "Configuration": "drawing",
+      "Result": "PASS",
+      "Checks": 16,
+      "Max_voltage_error_V": 3.000000026176508e-09,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    },
+    {
+      "Circuit": "Op amp \u00b7 non-inverting amplifier (3 V)",
+      "Configuration": "open_port",
+      "Result": "PASS",
+      "Checks": 9,
+      "Max_voltage_error_V": 3.000000026176508e-09,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    },
+    {
+      "Circuit": "Op amp \u00b7 non-inverting amplifier (3 V)",
+      "Configuration": "resistance_test",
+      "Result": "PASS",
+      "Checks": 10,
+      "Max_voltage_error_V": 0.0,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    },
+    {
+      "Circuit": "Op amp \u00b7 voltage follower (2 V, zero load current)",
+      "Configuration": "drawing",
+      "Result": "PASS",
+      "Checks": 10,
+      "Max_voltage_error_V": 1.999999943436137e-09,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    },
+    {
+      "Circuit": "Op amp \u00b7 voltage follower (2 V, zero load current)",
+      "Configuration": "open_port",
+      "Result": "PASS",
+      "Checks": 6,
+      "Max_voltage_error_V": 1.999999943436137e-09,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    },
+    {
+      "Circuit": "Op amp \u00b7 voltage follower (2 V, zero load current)",
+      "Configuration": "resistance_test",
+      "Result": "PASS",
+      "Checks": 7,
+      "Max_voltage_error_V": 0.0,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    },
+    {
+      "Circuit": "Open output \u00b7 12 V with no resistor current",
+      "Configuration": "drawing",
+      "Result": "PASS",
+      "Checks": 10,
+      "Max_voltage_error_V": 0.0,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    },
+    {
+      "Circuit": "Open output \u00b7 12 V with no resistor current",
+      "Configuration": "open_port",
+      "Result": "PASS",
+      "Checks": 6,
+      "Max_voltage_error_V": 0.0,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    },
+    {
+      "Circuit": "Open output \u00b7 12 V with no resistor current",
+      "Configuration": "resistance_test",
+      "Result": "PASS",
+      "Checks": 7,
+      "Max_voltage_error_V": 0.0,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    },
+    {
+      "Circuit": "Open loop \u00b7 comparator HIGH (5 V)",
+      "Configuration": "drawing",
+      "Result": "PASS",
+      "Checks": 16,
+      "Max_voltage_error_V": 0.0,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    },
+    {
+      "Circuit": "Open loop \u00b7 comparator LOW (\u221212 V)",
+      "Configuration": "drawing",
+      "Result": "PASS",
+      "Checks": 16,
+      "Max_voltage_error_V": 0.0,
+      "Details": "SPICE, CircuitScope and applicable fixed hand references agree."
+    }
+  ],
+  "environment": {
+    "python": "3.12.14",
+    "numpy": "2.5.4",
+    "platform": "Linux"
+  },
+  "models": {
+    "feedback_gain": 1000000000.0,
+    "comparator": "ideal two-level behavioral source"
+  },
+  "tolerances": {
+    "relative": 1e-06,
+    "voltage_absolute_V": 1e-08,
+    "current_absolute_A": 1e-10,
+    "resistance_absolute_ohm": 1e-08
+  },
+  "scope": "29 DC configurations: 11 original drawings, 9 open-port tests, 9 1 A resistance tests. Feedback amps use finite gain 1e9. Comparator expression threshold behavior differs from the app guard. LTspice decks are provided, but LTspice itself was not run. Native Windows browser behavior is not covered."
+}

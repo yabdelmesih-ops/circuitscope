@@ -1,6 +1,6 @@
 # Reference circuits and validation
 
-Each reference circuit can be loaded in the app from **Example circuits and solver checks**, and all nine are checked together with **Run solver checks**.
+Each reference circuit can be loaded in the app from **Example circuits and solver checks**, and all eleven are checked together with **Run solver checks**.
 
 The reference values are fixed results from the hand calculations below. They are not obtained by running the solver and treating its output as the answer key. Verification runs `engine.py` and compares its results with these fixed values.
 
@@ -15,6 +15,8 @@ The reference values are fixed results from the hand calculations below. They ar
 | Non-inverting op amp | Vin = Vm = 1 V; Vout = 3 V | Vout → ground, no external load | 3 V | 0 Ω |
 | Voltage follower | Vin = Vout = 2 V | Vout → ground, no load | 2 V | 0 Ω |
 | Unloaded resistor output | Vin = Vout = 12 V | Vout → ground, no load | 12 V | 1000 Ω |
+| Comparator HIGH | Vin = 3 V; Vref = 2 V; Vout = 5 V | Nonlinear; no global equivalent | — | — |
+| Comparator LOW | Vin = 1 V; Vref = 2 V; Vout = −12 V | Nonlinear; no global equivalent | — | — |
 
 Ground is 0 V in every case. For nonzero Rth, the port's Norton current is Vth/Rth in the listed port direction. Ideal op-amp outputs have Rth = 0, so no finite Norton-current check is performed for them. Values for a loaded circuit and an equivalent circuit with its load removed describe different configurations.
 
@@ -38,6 +40,10 @@ Ground is 0 V in every case. For nonzero Rth, the port's Norton current is Vth/R
 
 9. **Open resistor output:** KCL at Vout gives (Vout − 12)/1000 = 0. Thus Vout = 12 V while the resistor and source currents are zero. The infinite-resistance probe contributes no branch.
 
+10. **Comparator HIGH:** V+ − V− = 3 − 2 = 1 V, so the configured 0 to 5 V model selects 5 V. A 1 kΩ load carries 5 mA to ground; 5 mA leaves OUT, and both input source currents are zero. Removing RL leaves the output at 5 V with zero output current.
+
+11. **Comparator LOW:** V+ − V− = 1 − 2 = −1 V, so a model configured for −12 to +12 V selects −12 V. With RL = 2 kΩ, its output-to-ground signed current is −6 mA and the amplifier absorbs 6 mA into OUT. The output branch supplies 72 mW to the resistor. Both comparator cases skip global Thévenin/Norton checks because their input/output relationship is nonlinear.
+
 ## What Run solver checks verifies
 
 - Every expected node voltage and signed component current.
@@ -45,10 +51,14 @@ Ground is 0 V in every case. For nonzero Rth, the port's Norton current is Vth/R
 - Conservation of power: the total signed branch power must be zero. Positive power is absorbed; negative power is supplied.
 - Thévenin voltage and resistance, with the exact port and load stated above, plus Norton current where Rth is nonzero. Amplifier power balance uses its output branch and implicit supply/ground return; supply currents are not modeled.
 
-There are 125 numerical comparisons across the nine examples, including the ideal input voltage constraints. Comparisons use a relative tolerance of 1e−8 and an absolute tolerance of 1e−10. The signed-power residual is normalized by total absolute power before comparison. A PASS report covers these nine examples; it does not establish correctness for every possible circuit.
+There are 153 numerical comparisons across eleven examples, including feedback input equality or open-loop output-level decisions as appropriate. Comparisons use a relative tolerance of 1e−8 and an absolute tolerance of 1e−10. The signed-power residual is normalized by total absolute power before comparison. A PASS report covers these eleven examples; it does not establish correctness for every possible circuit.
 
 The automated tests also inject incorrect solver and equivalent-circuit results to check that the verifier reports failures. Reports are displayed per example so one failure does not prevent the remaining circuits from being checked. The reference checks never alter the active drawing.
 
 ## Remaining validation
 
-The numerical comparisons and Streamlit startup paths have automated coverage. DOM tests exercise the drawing logic. Full native-browser mouse behavior, visual layout on Windows, and comparison with an external SPICE simulator still need independent checking. Supported models are resistors, independent ideal DC sources and ideal op amps with supported negative feedback. These checks do not cover real amplifier dynamics or saturation.
+The numerical comparisons and Streamlit startup paths have automated coverage. DOM tests exercise the drawing logic. The included ngspice report adds 293 independent comparisons across 29 DC configurations, including open ports and 1 A resistance tests. Real headless Linux Chromium workflows and responsive layout have a separate report in validation/browser_report.json; see [browser-tests.md](browser-tests.md). Native Windows mouse behavior and physical touch still need checking. Supported models are resistors, independent ideal DC sources and ideal op amps with supported negative feedback or two-level open-loop comparator operation. These checks do not cover real amplifier dynamics, hysteresis or closed-loop saturation.
+
+## Independent SPICE result
+
+Enable **Show independent SPICE verification** in the app. All 29 configurations pass using ngspice-42. Both simulator formats and a source-bound report are included under **validation/**. Feedback amplifier gain is 10⁹ in SPICE, approximating the infinite-gain app model; comparator equality handling also differs. LTspice-format files are included, but LTspice itself was not run. See [spice-validation.md](spice-validation.md) for the tolerances and limitations.

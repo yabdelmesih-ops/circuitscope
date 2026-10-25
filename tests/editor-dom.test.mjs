@@ -8,7 +8,7 @@ const {JSDOM}=await import(process.env.CIRCUITSCOPE_JSDOM_PATH || 'jsdom');
 const html=readFileSync(new URL('../canvas/editor.html',import.meta.url),'utf8');
 const sample=JSON.parse(readFileSync(new URL('../sample_drawing.json',import.meta.url)));
 
-function harness(drawing=sample,lesson=null,nodeMap={},measurement=null){
+function harness(drawing=sample,lesson=null,nodeMap={},measurement=null,amplifiers=[]){
   const dom=new JSDOM(html),document=dom.window.document,svg=document.querySelector('#canvas');
   const frames=new Map(),updates=[],messages=[];let frameId=0,captured=null,cleanup;
   globalThis.AbortController=dom.window.AbortController;
@@ -20,7 +20,7 @@ function harness(drawing=sample,lesson=null,nodeMap={},measurement=null){
   svg.hasPointerCapture=id=>captured===id;
   svg.releasePointerCapture=()=>{captured=null;};
   const q=s=>document.querySelector(s);
-  function mount(model=drawing,overlay=lesson,readout=measurement){cleanup?.();cleanup=renderer({parentElement:document.body,data:{drawing:structuredClone(model),node_map:nodeMap,lesson:overlay,measurement:readout},setStateValue:(key,value)=>{messages.push({key,value:structuredClone(value)});if(key==='drawing')updates.push(structuredClone(value));}});}
+  function mount(model=drawing,overlay=lesson,readout=measurement,ampStates=amplifiers){cleanup?.();cleanup=renderer({parentElement:document.body,data:{drawing:structuredClone(model),node_map:nodeMap,lesson:overlay,measurement:readout,amplifiers:ampStates},setStateValue:(key,value)=>{messages.push({key,value:structuredClone(value)});if(key==='drawing')updates.push(structuredClone(value));}});}
   function pointer(type,target,x=0,y=0,id=1){const e=new dom.window.MouseEvent(type,{bubbles:true,clientX:x,clientY:y,button:0});Object.defineProperty(e,'pointerId',{value:id});target.dispatchEvent(e);}
   function clickPin(key){const p=endpoint(q('#editor')._editorUI.model,key);pointer('pointerdown',q(`[data-pin="${key}"] .pin-hit`),p.x,p.y);pointer('pointerup',svg,p.x,p.y);}
   function clickAt(x,y){pointer('pointerdown',svg,x,y);pointer('pointerup',svg,x,y);}
@@ -279,5 +279,73 @@ test('output readout shows an open load and local edits immediately clear the ol
   assert.equal(h.q('.removed-load'),null);
   h.mount(model,null,measurement); // Delayed response is older than the local edit.
   assert.equal(h.q('#measurement-info').hidden,true);assert.equal(h.q('.probe-reading'),null);
+  h.close();
+});
+
+test('open-loop mode edits preserve drafts, save with the circuit and undo to feedback',()=>{
+  const h=harness({schema:'circuitscope.canvas.v1',items:[],wires:[]});
+  h.q('[data-tool="OPAMP"]').click();h.clickAt(600,320);
+  assert.equal(h.q('#opamp-mode').value,'feedback');
+  h.q('#label-3').value='Vout';h.q('#rail-min').value='0';h.q('#rail-max').value='5';
+  h.q('#opamp-mode').value='open_loop';
+  h.q('#opamp-mode').dispatchEvent(new h.document.defaultView.Event('change',{bubbles:true}));
+  assert.match(h.q('#part-help').textContent,/no feedback/);
+  h.mount(h.updates.at(-1));
+  assert.equal(h.q('#opamp-mode').value,'open_loop');assert.equal(h.q('#label-3').value,'Vout');
+  assert.equal(h.q('#rail-max').value,'5');
+  h.q('#apply').click();
+  assert.equal(h.updates.at(-1).items[0].mode,'open_loop');
+  assert.equal(h.updates.at(-1).items[0].v_min,0);
+  assert.equal(h.q('.opamp-mode-label').textContent,'OPEN LOOP');
+  h.q('#undo').click();
+  assert.equal(h.q('#editor')._editorUI.model.items[0].mode,'feedback');
+  assert.equal(h.q('.opamp-mode-label'),null);
+  h.close();
+});
+
+test('HIGH/LOW annotations require current results and cannot return from a stale echo',()=>{
+  const model={schema:'circuitscope.canvas.v1',wires:[],items:[{id:'U1',type:'OPAMP',x:600,y:320,rotation:0,mode:'open_loop',v_min:0,v_max:5}]};
+  const states=[{name:'U1',state:'HIGH',voltage:5}];
+  const h=harness(model,null,{},null,states);
+  assert.match(h.q('[data-opamp-state="U1"]').textContent,/HIGH.*5.000 V/);
+  h.pointer('pointerdown',h.q('[data-item="U1"] .hit'),600,320);h.pointer('pointerup',h.svg,600,320);
+  h.q('#rail-max').value='3.3';h.q('#apply').click();
+  assert.equal(h.q('.opamp-state'),null);
+  h.mount(model,null,null,states);
+  assert.equal(h.q('.opamp-state'),null);
+  const latest=h.q('#editor')._editorUI.model;
+  h.mount(latest,null,null,[{name:'U1',state:'HIGH',voltage:3.3}]);
+  assert.match(h.q('.opamp-state').textContent,/HIGH.*3.300 V/);
+  h.close();
+});
+
+test('a real Streamlit-style data update retires old handlers without unmounting',()=>{
+  const empty={schema:'circuitscope.canvas.v1',items:[],wires:[]};
+  const h=harness(empty),updates=[];
+  // Streamlit calls the renderer on data updates without first calling the
+  // unmount cleanup. Earlier tests mounted after cleanup and missed this bug.
+  const cleanup=renderer({parentElement:h.document.body,data:{drawing:structuredClone(empty)},setStateValue:(key,value)=>updates.push({key,value:structuredClone(value)})});
+  h.q('[data-tool="R"]').click();h.clickAt(600,320);
+  assert.equal(updates.length,1,'one action must publish exactly once');
+  assert.equal(h.updates.length,0,'the old renderer must no longer receive events');
+  assert.equal(h.q('#editor')._editorUI.model.items.length,1);
+  assert.equal(h.q('#editor')._editorUI.model.items[0].id,'R1');
+  cleanup();h.close();
+});
+
+
+test('wire gestures keep the property panel and delayed teaching layout steady',()=>{
+  const h=harness(sample),item=sample.items.find(i=>i.id==='R1');
+  h.pointer('pointerdown',h.q('[data-item="R1"] .hit'),item.x,item.y);
+  h.pointer('pointerup',h.svg,item.x,item.y);
+  assert.equal(h.q('#property-fields').hidden,false);
+  h.clickPin('R1:1');
+  assert.equal(h.q('#property-fields').hidden,false,'starting a wire must not collapse the form');
+  h.mount(sample,teachingOverlay);
+  assert.equal(h.q('#lesson-notes').hidden,true,'a backend result must not resize an active route');
+  h.clickPin('R2:1');
+  assert.equal(h.updates.at(-1).wires.length,sample.wires.length+1);
+  h.mount(h.updates.at(-1),teachingOverlay);
+  assert.equal(h.q('#lesson-notes').hidden,false,'fresh results can appear after completion');
   h.close();
 });

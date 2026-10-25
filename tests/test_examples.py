@@ -10,7 +10,7 @@ from verification import verify_example, verify_examples
 class ReferenceExamplesTests(unittest.TestCase):
     def test_all_hand_calculated_cases_with_the_included_engine(self):
         cases = get_examples()
-        self.assertEqual(len(cases), 9)
+        self.assertEqual(len(cases), 11)
         for case in cases:
             with self.subTest(case=case['id']):
                 row = verify_example(case, engine.solve_circuit, engine.thevenin)
@@ -53,6 +53,6 @@ class ReferenceExamplesTests(unittest.TestCase):
         def broken_solver(parts):
             raise ValueError('Example failure')
         rows = verify_examples(broken_solver, engine.thevenin)
-        self.assertEqual(len(rows), 9)
+        self.assertEqual(len(rows), 11)
         self.assertTrue(all(row['Result']=='FAIL' for row in rows))
         self.assertTrue(all('Example failure' in row['Details'] for row in rows))

@@ -1,0 +1,18 @@
+* CircuitScope DC operating point
+* Format: ltspice; configuration: full drawing
+* Probes add no electrical branch. All source values are SI numbers.
+* Node 0 = '0'
+* Node n1 = 'Vin'
+* Node n2 = 'Vm'
+* Node n3 = 'Vout'
+* Feedback op amps use finite gain 1e9 in SPICE, approximating CircuitScope’s infinite-gain model. Output limits are checked before export; the E source itself does not clip.
+* This exports an operating point, not a schematic or a physical op-amp model. Supplies are implicit; no timing, bias, current limit or real-chip behavior is modeled.
+V_V1 n1 0 1
+R_Rin n1 n2 10000
+R_Rf n2 n3 20000
+E_U1 n3 0 0 n2 1000000000
+R_RL n3 0 10000
+.options reltol=1e-8 abstol=1e-12 vntol=1e-10
+.save all
+.op
+.end

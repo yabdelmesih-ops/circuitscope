@@ -9,7 +9,7 @@ from circuit_model import component_nodes, validate_opamps
 
 
 def terminals(item):
-    """Ground and junction dots have one pin; R, V, I have two."""
+    """Ground/junction: one pin; R/V/I/probe: two; op amp: three."""
     count = 1 if item['type'] in ('GROUND', 'J') else 3 if item['type'] == 'OPAMP' else 2
     return [f"{item['id']}:{pin}" for pin in range(1, count + 1)]
 
@@ -55,6 +55,8 @@ def compile_drawing(drawing):
             if item['type'] == 'R' and value <= 0:
                 raise ValueError(f'{name}: resistance must be positive.')
         if item['type'] == 'OPAMP':
+            if item.get('mode', 'feedback') not in ('feedback', 'open_loop'):
+                raise ValueError(f'{name}: choose feedback or open_loop mode.')
             low, high = item.get('v_min', -15), item.get('v_max', 15)
             if not all(isinstance(v, (int, float)) and isfinite(v) for v in (low, high)) or low >= high:
                 raise ValueError(f'{name}: output limits must be finite and minimum < maximum.')
@@ -142,7 +144,8 @@ def compile_drawing(drawing):
             components.append(dict(name=item['id'], type='OPAMP',
                 node1=terminal_nodes[f"{item['id']}:1"], node2=terminal_nodes[f"{item['id']}:2"],
                 node3=terminal_nodes[f"{item['id']}:3"],
-                v_min=float(item.get('v_min', -15)), v_max=float(item.get('v_max', 15))))
+                v_min=float(item.get('v_min', -15)), v_max=float(item.get('v_max', 15)),
+                mode=item.get('mode', 'feedback')))
         # PORT is an infinite-resistance voltmeter. Its two pins stay separate
         # and it adds no electrical branch or extra equation.
     return components, terminal_nodes

@@ -119,6 +119,10 @@ const path = points => points.map((p,i)=>`${i?'L':'M'}${p.x},${p.y}`).join(' ');
 export default function({parentElement, data, setStateValue}) {
   const q = selector => parentElement.querySelector(selector);
   const root=q('#editor'), svg=q('#canvas'), controller=new AbortController();
+  // Streamlit calls the renderer again on data updates; its returned cleanup
+  // runs on unmount, not before every update. Retire the previous handlers and
+  // pending animation frame ourselves while retaining the shared editor state.
+  root._editorCleanup?.();
   const listen=(element,event,fn)=>element.addEventListener(event,fn,{signal:controller.signal});
   const ui=root._editorUI || {tool:'select',selected:null,pending:null,drag:null,history:[]};
   root._editorUI=ui;
@@ -126,16 +130,23 @@ export default function({parentElement, data, setStateValue}) {
   ui.route=ui.route||[];ui.routeHistory=ui.routeHistory||[];ui.bend=ui.bend||'hv';
   // A delayed Python echo must not replace edits made since it was sent.
   const incoming=clone(data.drawing);
+  ui.backendRevision=incoming.revision||0;
   let model=ui.model && (ui.drag||ui.wireGesture||(ui.model.revision||0)>(incoming.revision||0)) ? ui.model : incoming;
   ui.model=model;
   ui.revision=Math.max(ui.revision||0,model.revision||0);
   let nodeMap=data.node_map || {},frame=null,cursor=ui.cursor||null;
-  let lesson=(model.revision||0)>(incoming.revision||0)?null:data.lesson||null;
-  let measurement=(model.revision||0)>(incoming.revision||0)?null:data.measurement||null;
+  const cleanup=()=>{controller.abort();if(frame!==null)cancelAnimationFrame(frame);if(root._editorCleanup===cleanup)delete root._editorCleanup;};
+  root._editorCleanup=cleanup;
+  // A delayed result must not open a notes panel or measurement banner halfway
+  // through a gesture: that changes the SVG transform under the pointer.
+  const annotations=ui.drag||ui.pending||ui.wireGesture?ui.annotations||{}:data;
+  let lesson=(model.revision||0)>(incoming.revision||0)?null:annotations.lesson||null;
+  let measurement=(model.revision||0)>(incoming.revision||0)?null:annotations.measurement||null;
+  let amplifiers=(model.revision||0)>(incoming.revision||0)?[]:annotations.amplifiers||[];
   const snap=n=>Math.round(n/20)*20;
   const tell=text=>q('#status').textContent=text;
   const history=()=>{ui.history.push(clone(model));if(ui.history.length>40)ui.history.shift();};
-  const commit=()=>{model.revision=++ui.revision;ui.model=model;lesson=null;measurement=null;render();setStateValue('drawing',clone(model));};
+  const commit=()=>{model.revision=++ui.revision;ui.model=model;lesson=null;measurement=null;amplifiers=[];render();setStateValue('drawing',clone(model));};
   const getItem=()=>model.items.find(i=>i.id===ui.selected);
 
   function setTool(tool) {
@@ -151,7 +162,7 @@ export default function({parentElement, data, setStateValue}) {
     while(model.items.some(i=>i.id===prefix+n))n++;
     const item={id:prefix+n,type,x:Math.max(60,Math.min(1080,snap(position.x))),y:Math.max(60,Math.min(660,snap(position.y))),rotation:['V','I'].includes(type)?90:0,label1:'',label2:''};
     if(['R','V','I'].includes(type))item.value=type==='R'?1000:type==='V'?5:.001;
-    if(type==='OPAMP'){item.v_min=-15;item.v_max=15;item.label3='';}
+    if(type==='OPAMP'){item.v_min=-15;item.v_max=15;item.label3='';item.mode='feedback';}
     model.items.push(item);ui.selected=item.id;setTool('select');commit();
   }
   function explainNode(event){
@@ -186,7 +197,7 @@ export default function({parentElement, data, setStateValue}) {
   function wireDown(event,target,at){
     const started=!ui.pending;
     if(started&&!target){tell('Start on a terminal or an existing wire.');return;}
-    if(started){ui.wireStay=ui.tool==='wire';ui.pending=target;ui.route=[];ui.routeHistory=[];ui.selected=null;ui.tool='wire';}
+    if(started){ui.wireStay=ui.tool==='wire';ui.pending=target;ui.route=[];ui.routeHistory=[];ui.tool='wire';}
     ui.wireGesture={pointerId:event.pointerId,started,x:event.clientX,y:event.clientY};
     svg.setPointerCapture(event.pointerId);cursor=at;ui.cursor=at;event.preventDefault();
     tell('Release on a green target, or click empty space to place a corner. Tab flips the bend; Esc cancels.');render();
@@ -296,12 +307,17 @@ export default function({parentElement, data, setStateValue}) {
     q('#lesson-cards').innerHTML=lesson.notes[lesson.step].map(note=>`<li>${esc(note)}</li>`).join('');
   }
   function render() {
+    ui.annotations={lesson,measurement,amplifiers};
     q('#measurement-info').hidden=!measurement;
     if(measurement)q('#measurement-info').textContent=`Open output: V(${measurement.node1}) − V(${measurement.node2}) = ${Number(measurement.voltage).toPrecision(6)} V · Probe current: 0 A · Removed load: ${measurement.removedLoad||'none'} (feedback stays connected)`;
     let html='<defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><circle r=".8" fill="#d6e5ce"/></pattern></defs><rect width="1140" height="720" fill="url(#grid)"/>';
     for(const w of model.wires){const points=wirePoints(model,w);if(!points.length)continue;const d=path(points);html+=`<g class="wire ${ui.selected===w.id?'selected':''}" data-wire="${esc(w.id)}"><path class="wire-hit" d="${d}"/><path class="wire-line" d="${d}"/></g>`;}
     if(!model.items.length)html+='<text x="570" y="330" text-anchor="middle" fill="#b0c5a5" font-size="24">Drag a component from the inventory</text>';
-    model.items.forEach(item=>html+=symbol(item));
+    model.items.forEach(item=>{
+      html+=symbol(item);
+      if(item.type==='OPAMP'&&item.mode==='open_loop')html+=`<text class="opamp-mode-label" x="${item.x}" y="${item.y-78}" text-anchor="middle" font-size="11" fill="#8651a2" pointer-events="none">OPEN LOOP</text>`;
+    });
+    for(const state of amplifiers){const item=model.items.find(i=>i.id===state.name&&i.type==='OPAMP'&&i.mode==='open_loop');if(item)html+=`<text class="opamp-state" data-opamp-state="${esc(state.name)}" x="${item.x+110}" y="${item.y-34}" text-anchor="middle" font-size="13" fill="${state.state==='HIGH'?'#087f62':'#b65d08'}" pointer-events="none">${esc(state.state)} · ${esc(Number(state.voltage).toPrecision(4))} V</text>`;}
     html+='<path id="wire-preview" fill="none" stroke="#168059" stroke-width="3" stroke-dasharray="7 5" pointer-events="none"/><circle id="wire-snap" r="14" fill="#3db67b" fill-opacity=".2" stroke="#13844d" stroke-width="3" pointer-events="none" visibility="hidden"/><text id="wire-target-label" fill="#086b43" font-size="12" font-weight="600" pointer-events="none"></text>';
     const labelsShown=new Set();
     for(const item of model.items)for(const pin of pins(item)){
@@ -332,10 +348,11 @@ export default function({parentElement, data, setStateValue}) {
     q('#part-value').value=draft?draft.value:item.value??'';q('#part-value').disabled=item.value===undefined;
     q('#label-1').value=draft?draft.label1:item.label1||'';q('#label-2').value=draft?draft.label2:item.label2||'';
     q('#label-1').disabled=item.type==='GROUND';q('#label-2-field').hidden=pins(item).length===1;
-    q('#label-3-field').hidden=q('#rail-min-field').hidden=q('#rail-max-field').hidden=item.type!=='OPAMP';
+    q('#label-3-field').hidden=q('#rail-min-field').hidden=q('#rail-max-field').hidden=q('#opamp-mode-field').hidden=item.type!=='OPAMP';
     q('#label-3').value=draft?draft.label3:item.label3||'';
     q('#rail-min').value=draft?draft.v_min:item.v_min??-15;q('#rail-max').value=draft?draft.v_max:item.v_max??15;
-    q('#part-help').textContent=item.type==='OPAMP'?'Pin 1 = + · Pin 2 = − · Pin 3 = OUT. Zero input currents; keep inputs separate. Wire OUT back to −. Limits describe the supported linear output range; supplies are implicit.':item.type==='PORT'?'Pin 1 = + · Pin 2 = −. Infinite resistance: terminals are never connected internally. Choose Open-circuit voltage above to read this probe.':'';
+    q('#opamp-mode').value=draft?draft.mode??'feedback':item.mode??'feedback';
+    q('#part-help').textContent=item.type==='OPAMP'?(q('#opamp-mode').value==='open_loop'?'OPEN LOOP: no feedback from OUT to either input. + > − selects output maximum; + < − selects minimum. Equal inputs are undefined. Both input currents are zero; supplies are implicit.':'NEGATIVE FEEDBACK: pin 1 = + · pin 2 = − · pin 3 = OUT. Zero input currents; keep inputs separate. Wire OUT back to −. Limits describe the supported linear range; supplies are implicit.'):item.type==='PORT'?'Pin 1 = + · Pin 2 = −. Infinite resistance: terminals are never connected internally. Choose Open-circuit voltage above to read this probe.':'';
   }
   listen(q('#inventory'),'click',event=>{const b=event.target.closest('[data-tool]');if(b)setTool(b.dataset.tool);});
   listen(q('#inventory'),'dragstart',event=>{const b=event.target.closest('[data-tool]');if(b){event.dataTransfer.setData('application/x-circuitscope',b.dataset.tool);event.dataTransfer.effectAllowed='copy';}});
@@ -383,16 +400,19 @@ export default function({parentElement, data, setStateValue}) {
   listen(q('#bend-wire'),'click',flipBend);
   listen(q('#rotate'),'click',rotate);listen(q('#delete'),'click',remove);
   listen(q('#clear'),'click',()=>{cancelWire(true,false);history();model={schema:'circuitscope.canvas.v1',items:[],wires:[]};ui.selected=null;ui.pending=null;ui.tool='select';ui.draft=null;commit();});
-  listen(q('#properties'),'input',()=>{ui.draft={id:ui.selected,value:q('#part-value').value,label1:q('#label-1').value,label2:q('#label-2').value,label3:q('#label-3').value,v_min:q('#rail-min').value,v_max:q('#rail-max').value};});
+  function rememberProperties(){ui.draft={id:ui.selected,value:q('#part-value').value,label1:q('#label-1').value,label2:q('#label-2').value,label3:q('#label-3').value,v_min:q('#rail-min').value,v_max:q('#rail-max').value,mode:q('#opamp-mode').value};}
+  listen(q('#properties'),'input',rememberProperties);
+  listen(q('#opamp-mode'),'change',()=>{rememberProperties();showProperties();});
   listen(q('#properties'),'submit',event=>{event.preventDefault();const item=getItem();if(!item)return;
     const value=Number(q('#part-value').value),l1=q('#label-1').value.trim(),l2=q('#label-2').value.trim(),l3=q('#label-3').value.trim(),low=Number(q('#rail-min').value),high=Number(q('#rail-max').value);
     if(item.value!==undefined&&(!q('#part-value').value.trim()||!Number.isFinite(value)||(item.type==='R'&&value<=0))){tell('Enter a finite value; resistances must be positive.');return;}
     if([l1,l2,...(item.type==='OPAMP'?[l3]:[])].some(label=>label&&!/^[A-Za-z][A-Za-z0-9_]{0,11}$/.test(label))){tell('Node labels begin with a letter; ground uses a ground symbol.');return;}
     if(item.type==='OPAMP'&&(!q('#rail-min').value.trim()||!q('#rail-max').value.trim()||!Number.isFinite(low)||!Number.isFinite(high)||low>=high)){tell('Enter finite output limits with minimum below maximum.');return;}
+    if(item.type==='OPAMP'&&!['feedback','open_loop'].includes(q('#opamp-mode').value)){tell('Choose a valid op-amp operation.');return;}
     history();if(item.value!==undefined)item.value=value;if(item.type!=='GROUND')item.label1=l1;item.label2=l2;
-    if(item.type==='OPAMP'){item.label3=l3;item.v_min=low;item.v_max=high;}
+    if(item.type==='OPAMP'){item.label3=l3;item.v_min=low;item.v_max=high;item.mode=q('#opamp-mode').value;}
     ui.draft=null;commit();
   });
   render();
-  return()=>{controller.abort();if(frame!==null)cancelAnimationFrame(frame);};
+  return cleanup;
 }
