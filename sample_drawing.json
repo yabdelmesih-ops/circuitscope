@@ -1,0 +1,91 @@
+{
+  "schema": "circuitscope.canvas.v1",
+  "items": [
+    {
+      "id": "V1",
+      "type": "V",
+      "x": 200,
+      "y": 300,
+      "rotation": 90,
+      "value": 12,
+      "label1": "Vb",
+      "label2": ""
+    },
+    {
+      "id": "R1",
+      "type": "R",
+      "x": 480,
+      "y": 180,
+      "rotation": 0,
+      "value": 1000,
+      "label1": "",
+      "label2": ""
+    },
+    {
+      "id": "R2",
+      "type": "R",
+      "x": 760,
+      "y": 300,
+      "rotation": 90,
+      "value": 1000,
+      "label1": "Va",
+      "label2": ""
+    },
+    {
+      "id": "R3",
+      "type": "R",
+      "x": 480,
+      "y": 100,
+      "rotation": 180,
+      "value": 2000,
+      "label1": "",
+      "label2": ""
+    },
+    {
+      "id": "GND1",
+      "type": "GROUND",
+      "x": 200,
+      "y": 540,
+      "rotation": 0,
+      "label1": ""
+    }
+  ],
+  "wires": [
+    {
+      "id": "w1",
+      "a": "V1:1",
+      "b": "R1:1",
+      "bend": "vh"
+    },
+    {
+      "id": "w2",
+      "a": "R1:2",
+      "b": "R2:1",
+      "bend": "hv"
+    },
+    {
+      "id": "w3",
+      "a": "R2:2",
+      "b": "V1:2",
+      "bend": "vh"
+    },
+    {
+      "id": "w4",
+      "a": "V1:2",
+      "b": "GND1:1",
+      "bend": "vh"
+    },
+    {
+      "id": "w5",
+      "a": "R3:1",
+      "b": "R2:1",
+      "bend": "hv"
+    },
+    {
+      "id": "w6",
+      "a": "R3:2",
+      "b": "V1:1",
+      "bend": "hv"
+    }
+  ]
+}

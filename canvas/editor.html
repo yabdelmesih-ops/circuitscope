@@ -1,0 +1,43 @@
+<div id="editor">
+  <div class="bar">
+    <div><b>Draw your circuit</b><small id="status">Drag a part onto the grid, then connect its pins.</small></div>
+    <div class="tools"><button id="undo" title="Undo drawing change or last wire corner">↶ Undo</button><button id="bend-wire" disabled title="Flip wire bend (Tab)">Flip bend</button><button id="cancel-wire" disabled title="Cancel unfinished wire (Esc)">Cancel wire</button><button id="rotate">↻ Rotate</button><button id="delete">Delete</button><button id="clear">Clear</button></div>
+  </div>
+  <div class="work-area">
+    <aside id="inventory">
+      <span class="eyebrow">INVENTORY</span>
+      <button data-tool="select" class="active"><strong>↖</strong> Select / move</button>
+      <button data-tool="explain" title="Explain a node (E)"><strong>?</strong> Explain node</button>
+      <button data-tool="wire" draggable="true"><strong>⌁</strong> Wire</button>
+      <button data-tool="R" draggable="true"><strong>∿</strong> Resistor</button>
+      <button data-tool="V" draggable="true"><strong>⊕</strong> Voltage source</button>
+      <button data-tool="I" draggable="true"><strong>↑</strong> Current source</button>
+      <button data-tool="OPAMP" draggable="true"><strong>▷</strong> Op amp</button>
+      <button data-tool="PORT" draggable="true"><strong>V</strong> Output probe</button>
+      <button data-tool="GROUND" draggable="true"><strong>⏚</strong> Ground</button>
+      <button data-tool="J" draggable="true"><strong>•</strong> Junction dot</button>
+      <p>Build your circuit, then choose Explain node and click any wire or terminal. Drag between terminals to wire, or click a start, corners, then an end. Wire mode lets you branch from existing wires.</p>
+    </aside>
+    <div class="paper"><svg id="canvas" viewBox="0 0 1140 720" role="application" aria-label="Circuit drawing canvas" tabindex="0"></svg></div>
+    <aside id="lesson-notes" class="lesson-notes" hidden aria-label="Circuit teaching notes">
+      <b id="lesson-heading"></b>
+      <p class="lesson-legend">Purple: selected node<br>Orange: entering · Green: leaving</p>
+      <ol id="lesson-cards"></ol>
+    </aside>
+  </div>
+  <div id="measurement-info" class="measurement-info" hidden></div>
+  <div class="hint">E: Explain node · W: Wire · Tab: flip bend · Backspace: remove corner · Esc: move mode. In Wire mode, click a wire to create a branch dot. Crossings alone stay unconnected. Pin 1 → pin 2 defines positive current; pin 1 is + on a voltage source.</div>
+  <form id="properties">
+    <b id="selected-name">Select a component to edit its value.</b>
+    <div id="property-fields" hidden>
+      <label>Value (Ω / V / A)<input id="part-value" type="number" step="any"></label>
+      <label>Pin 1 node label<input id="label-1" placeholder="optional: Va" maxlength="12"></label>
+      <label id="label-2-field">Pin 2 node label<input id="label-2" placeholder="optional" maxlength="12"></label>
+      <label id="label-3-field" hidden>OUT node label<input id="label-3" placeholder="optional: Vout" maxlength="12"></label>
+      <label id="rail-min-field" hidden>Output minimum (V)<input id="rail-min" type="number" step="any"></label>
+      <label id="rail-max-field" hidden>Output maximum (V)<input id="rail-max" type="number" step="any"></label>
+      <button id="apply" type="submit">Apply</button>
+    </div>
+    <small id="part-help"></small>
+  </form>
+</div>
