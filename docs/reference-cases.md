@@ -1,8 +1,8 @@
 # Reference circuits and validation
 
-Open **Example circuits and solver checks** in the app. Select a circuit and click **Load selected example** to draw it. The canvas still starts empty by default.
+Each reference circuit can be loaded in the app from **Example circuits and solver checks**, and all nine are checked together with **Run solver checks**.
 
-The reference values are fixed results from the equations below. They are not obtained by calling the numerical solver and treating its output as the answer key. Verification calls the included engine.py, then compares its results with those fixed values.
+The reference values are fixed results from the hand calculations below. They are not obtained by running the solver and treating its output as the answer key. Verification runs `engine.py` and compares its results with these fixed values.
 
 | Circuit | Loaded-circuit node voltages | Reference Thévenin port | Vth | Rth |
 | --- | --- | --- | --- | --- |

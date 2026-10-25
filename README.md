@@ -70,7 +70,7 @@ Every reference answer is a fixed value **derived by hand**, never taken from th
 | Voltage follower | Vout = 2 V with zero output current |
 | Unloaded resistor output | Vout = 12 V with zero current |
 
-Hand derivations for each case are in [`REFERENCE_CASES.md`](REFERENCE_CASES.md). The automated tests also feed deliberately wrong solver results to the verifier, which confirms that it catches them.
+Hand derivations for each case are in [`docs/reference-cases.md`](docs/reference-cases.md). The automated tests also feed deliberately wrong solver results to the verifier, which confirms that it catches them.
 
 ---
 
@@ -87,7 +87,7 @@ streamlit run drawing_app.py
 
 On Windows you can also double-click `RUN_CIRCUITSCOPE.bat`.
 
-**Try it:** open *Example circuits and solver checks* and load **Op amp · inverting amplifier**. Choose *Explain node* in the inventory and click the output wire.
+**Try it:** open *Example circuits and solver checks* and load **Op amp · inverting amplifier**. Choose *Explain node* in the inventory and click the output wire. See the [user guide](docs/user-guide.md) for all editor controls.
 
 ### Running the tests
 
@@ -111,7 +111,10 @@ opamp_examples.py    Op-amp reference circuits
 verification.py      Compares engine output to reference answers
 canvas/              Schematic editor (HTML/CSS/JS, Streamlit component)
 tests/               Python unittest + Node test suites
+docs/                Architecture, op-amp model, reference cases, user guide
 ```
+
+**Further reading:** [architecture](docs/architecture.md) · [op-amp model](docs/op-amp-model.md) · [reference cases](docs/reference-cases.md) · [user guide](docs/user-guide.md)
 
 ---
 
