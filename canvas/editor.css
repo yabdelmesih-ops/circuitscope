@@ -34,3 +34,8 @@ select{font:inherit;padding:7px 9px;border:1px solid #dce8df;border-radius:4px;c
 #property-fields label{font-size:11px;color:#536d58}
 @media(max-width:1100px){.paper{min-height:320px}aside.lesson-notes{max-height:180px;flex-shrink:0}}
 @media(max-width:450px){#inventory{max-height:140px;flex-shrink:0}#inventory button{font-size:10px;margin:1px 0;padding:5px}.paper{flex-basis:100%;min-height:290px;flex-shrink:0}.work-area{align-content:flex-start}.hint{font-size:10px}#properties{padding:10px}}
+
+/* Course-method annotations never intercept editing gestures. */
+.method-wire{fill:none;stroke:#286dc0;stroke-width:8;stroke-opacity:.25;stroke-linecap:round}
+.method-pin{fill:none;stroke:#286dc0;stroke-width:2.5}
+.method-part{fill:#ddebfa;fill-opacity:.15;stroke:#286dc0;stroke-width:2;stroke-dasharray:6 4}

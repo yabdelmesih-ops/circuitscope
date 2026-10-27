@@ -10,6 +10,8 @@ from examples import get_examples
 from verification import verify_examples, source_fingerprint, load_spice_report
 from spice_export import export_spice
 from practice_ui import render_practice
+from course_ui import render_course_examples, render_methods
+from screenshot_ui import render_screenshot_import
 
 st.set_page_config(page_title='CircuitScope Canvas', layout='wide')
 st.title('CircuitScope — draw, solve, understand')
@@ -30,15 +32,22 @@ st.session_state.setdefault('canvas_seed', EMPTY_DRAWING)
 st.session_state.setdefault('canvas_revision', 0)
 
 def load_drawing(model):
-    compile_drawing(model)
+    loaded_parts, _ = compile_drawing(model)
     st.session_state.canvas_seed = model
     st.session_state.canvas_revision += 1
     st.session_state.pop('analysis_result', None)
     st.session_state.pop('spice_export', None)
     st.session_state.pop('practice_active', None)
+    st.session_state.pop('method_result', None)
     st.session_state.question_kind = 'Node voltage'
     st.session_state.pop('question_node', None)
     st.session_state.pop('question_reference', None)
+    # Explicitly select the new circuit's default. Deleting a keyed selectbox
+    # value can let a queued browser update restore its old option (often 0).
+    loaded_nodes = sorted({n for p in loaded_parts for n in component_nodes(p)})
+    if loaded_nodes:
+        st.session_state.question_node = 'Vout' if 'Vout' in loaded_nodes else 'Va' if 'Va' in loaded_nodes else next((n for n in loaded_nodes if n != '0'), loaded_nodes[0])
+        st.session_state.question_reference = '0' if '0' in loaded_nodes else loaded_nodes[0]
     st.session_state.pop('question_branch', None)
     st.session_state.pop('output_probe', None)
     st.session_state.pop('removed_load', None)
@@ -115,6 +124,8 @@ with st.container():
                 st.info(reason)
 
     render_practice(st, load_drawing)
+    render_course_examples(st, load_drawing)
+    render_screenshot_import(st, load_drawing)
 
     with st.expander('Op-amp material · ideal rules and worked gains'):
         st.write('Place an Op amp from the inventory. Pin + is the non-inverting input, pin − is the inverting input, and OUT is the output. Select its body to choose Negative feedback (linear) or Open loop (comparator), then Apply. Both ideal input currents are zero. For the linear mode, connect output back to − directly or through resistors.')
@@ -141,6 +152,8 @@ with st.container():
         components, labels = compile_drawing(seed)
     except (ValueError, KeyError, TypeError) as error:
         components, labels, compile_error = [], {}, str(error)
+
+    method_overlay = render_methods(st, seed, load_drawing)
 
     # Ask the question before drawing, so numbers and visual notes update together.
     active, step = None, 1
@@ -282,7 +295,7 @@ editor = st.components.v2.component(
 )
 lesson = active['lesson'] if active else None
 result = editor(
-    data={'drawing': seed, 'node_map': labels, 'lesson': {**lesson, 'step': step} if lesson else None, 'measurement': active.get('measurement') if active else None, 'amplifiers': active.get('amplifiers', []) if active else []},
+    data={'drawing': seed, 'node_map': labels, 'lesson': {**lesson, 'step': step} if lesson else None, 'measurement': active.get('measurement') if active else None, 'amplifiers': active.get('amplifiers', []) if active else [], 'method_overlay': method_overlay},
     default={'drawing': seed, 'node_request': None}, key=key,
     on_drawing_change=lambda: None, on_node_request_change=lambda: None,
     height=820, width='stretch',

@@ -2,7 +2,7 @@
 
 `tests/browser-smoke.mjs` is an end-to-end suite that drives the real Streamlit app in Chromium using Playwright. It uses real mouse clicks, keyboard input and HTML drag-and-drop, then reads the answers computed by Python and the files the app downloads. Nothing is mocked, and no prebuilt drawing is injected into the editor.
 
-The committed report, `validation/browser_report.json`, records **14/14 workflow checks passing** in headless Linux Chromium, with no client-side JavaScript errors.
+The committed report, `validation/browser_report.json`, records **19/19 workflow checks passing** in headless Linux Chromium, with no client-side JavaScript errors.
 
 ## What is covered
 
@@ -18,6 +18,8 @@ The committed report, `validation/browser_report.json`, records **14/14 workflow
 - Inspecting the independent SPICE report
 - Lesson and op-amp property panels staying in bounds at tablet and phone widths (1024 and 390 px)
 - Guided practice: unit handling, a hint request, an equivalent answer in millivolts, optional reveal, signed current in milliamps, and grading disabled after a component value changes
+- Circuits I methods: supernode highlighting and invalidation after an edit, source contributions, divider and source-transformation loading, both summing amplifiers and a feedback cascade
+- Screenshot import: uploading a valid PNG and using the offline review demo to check required approval and editable loading (no live vision API call)
 - No client-side JavaScript errors across all workflows
 
 ## Bugs found and fixed

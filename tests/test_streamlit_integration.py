@@ -17,6 +17,60 @@ ROOT = Path(__file__).resolve().parents[1]
 
 @unittest.skipIf(AppTest is None, 'Install requirements.txt to check real Streamlit')
 class StreamlitIntegrationTests(unittest.TestCase):
+    def test_loading_an_example_replaces_a_stale_ground_node_selection(self):
+        app=AppTest.from_file(str(ROOT/'drawing_app.py')).run()
+        next(b for b in app.button if b.label=='Load worked example').click().run()
+        next(s for s in app.selectbox if s.label=='First node').set_value('0').run()
+        next(s for s in app.selectbox if s.label=='Reference circuit').set_value('Op amp · inverting amplifier (−2 V)').run()
+        next(b for b in app.button if b.label=='Load selected example').click().run()
+        self.assertFalse(app.exception,[e.message for e in app.exception])
+        self.assertEqual(app.session_state['question_node'],'Vout')
+        self.assertEqual(app.session_state['question_reference'],'0')
+
+    def test_course_methods_superposition_and_summing_use_the_active_drawing(self):
+        app=AppTest.from_file(str(ROOT/'drawing_app.py')).run()
+        next(s for s in app.selectbox if s.label=='Course example').set_value('Superposition · voltage and current sources').run()
+        next(b for b in app.button if b.label=='Load course example').click().run()
+        next(s for s in app.selectbox if s.label=='Circuit method').set_value('Superposition').run()
+        next(b for b in app.button if b.label=='Explain selected method').click().run()
+        self.assertFalse(app.exception,[e.message for e in app.exception])
+        self.assertAlmostEqual(app.session_state['method_result']['result']['full'],28/3)
+        next(s for s in app.selectbox if s.label=='Course example').set_value('Summing amplifier · inverting').run()
+        next(b for b in app.button if b.label=='Load course example').click().run()
+        next(s for s in app.selectbox if s.label=='Circuit method').set_value('Summing amplifiers').run()
+        next(b for b in app.button if b.label=='Explain selected method').click().run()
+        self.assertEqual(app.session_state['method_result']['result'][0]['predicted'],-4)
+        self.assertFalse(app.exception,[e.message for e in app.exception])
+
+    def test_source_transformation_loads_editable_equivalent_and_preserves_voltage(self):
+        app=AppTest.from_file(str(ROOT/'drawing_app.py')).run()
+        next(s for s in app.selectbox if s.label=='Course example').set_value('Voltage divider and source transformation').run()
+        next(b for b in app.button if b.label=='Load course example').click().run()
+        next(s for s in app.selectbox if s.label=='Circuit method').set_value('Source transformation').run()
+        next(b for b in app.button if b.label=='Explain selected method').click().run()
+        self.assertFalse(app.exception,[e.message for e in app.exception])
+        next(b for b in app.button if b.label=='Load transformed circuit').click().run()
+        next(b for b in app.button if b.label=='Solve drawing').click().run()
+        self.assertFalse(app.exception,[e.message for e in app.exception])
+        self.assertIn('8 V',[m.value for m in app.metric])
+        self.assertTrue(any(p['type']=='I' for p in app.session_state['canvas_seed']['items']))
+
+    def test_import_review_requires_approval_and_blocks_unsupported_symbols(self):
+        app=AppTest.from_file(str(ROOT/'drawing_app.py')).run()
+        next(b for b in app.button if b.label=='Try import review demo (no API)').click().run()
+        load=next(b for b in app.button if b.label=='Load reviewed circuit')
+        self.assertTrue(load.disabled)
+        next(c for c in app.checkbox if c.label.startswith('I checked the values')).check().run()
+        next(b for b in app.button if b.label=='Load reviewed circuit').click().run()
+        next(b for b in app.button if b.label=='Solve drawing').click().run()
+        self.assertFalse(app.exception,[e.message for e in app.exception])
+        self.assertIn('8 V',[m.value for m in app.metric])
+        payload=app.session_state['image_candidate']['payload']
+        payload['unsupported']=['capacitor C1']
+        app.run()
+        self.assertTrue(any('Unsupported elements' in e.value for e in app.error))
+        self.assertFalse(any(b.label=='Load reviewed circuit' for b in app.button))
+
     def test_practice_hints_checking_and_reveal_are_explicit(self):
         app = AppTest.from_file(str(ROOT / 'drawing_app.py')).run()
         next(b for b in app.button if b.label == 'Start practice question').click().run()

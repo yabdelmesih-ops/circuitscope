@@ -143,10 +143,11 @@ export default function({parentElement, data, setStateValue}) {
   let lesson=(model.revision||0)>(incoming.revision||0)?null:annotations.lesson||null;
   let measurement=(model.revision||0)>(incoming.revision||0)?null:annotations.measurement||null;
   let amplifiers=(model.revision||0)>(incoming.revision||0)?[]:annotations.amplifiers||[];
+  let methodOverlay=(model.revision||0)>(incoming.revision||0)?null:annotations.method_overlay||null;
   const snap=n=>Math.round(n/20)*20;
   const tell=text=>q('#status').textContent=text;
   const history=()=>{ui.history.push(clone(model));if(ui.history.length>40)ui.history.shift();};
-  const commit=()=>{model.revision=++ui.revision;ui.model=model;lesson=null;measurement=null;amplifiers=[];render();setStateValue('drawing',clone(model));};
+  const commit=()=>{model.revision=++ui.revision;ui.model=model;lesson=null;measurement=null;amplifiers=[];methodOverlay=null;render();setStateValue('drawing',clone(model));};
   const getItem=()=>model.items.find(i=>i.id===ui.selected);
 
   function setTool(tool) {
@@ -306,8 +307,19 @@ export default function({parentElement, data, setStateValue}) {
     q('#lesson-heading').textContent=`${headings[lesson.step]} · ${lesson.node}`;
     q('#lesson-cards').innerHTML=lesson.notes[lesson.step].map(note=>`<li>${esc(note)}</li>`).join('');
   }
+  function methodMarkup() {
+    if(!methodOverlay)return '';
+    const nodes=new Set(methodOverlay.nodes||[]),parts=new Set(methodOverlay.parts||[]);
+    let html=`<g id="method-overlay" pointer-events="none" ${ui.drag?'visibility="hidden"':''}><text x="20" y="28" font-size="14" fill="#1e5b9e">${esc(methodOverlay.label||'Circuit method')}</text>`;
+    for(const wire of model.wires)if(nodes.has(nodeMap[wire.a])&&nodes.has(nodeMap[wire.b]))html+=`<path class="method-wire" d="${path(wirePoints(model,wire))}"/>`;
+    for(const item of model.items){
+      if(parts.has(item.id))html+=`<rect class="method-part" x="${item.x-72}" y="${item.y-52}" width="144" height="104" rx="14"/>`;
+      for(const pin of pins(item))if(nodes.has(nodeMap[pin.key]))html+=`<circle class="method-pin" cx="${pin.x}" cy="${pin.y}" r="12"/>`;
+    }
+    return html+'</g>';
+  }
   function render() {
-    ui.annotations={lesson,measurement,amplifiers};
+    ui.annotations={lesson,measurement,amplifiers,method_overlay:methodOverlay};
     q('#measurement-info').hidden=!measurement;
     if(measurement)q('#measurement-info').textContent=`Open output: V(${measurement.node1}) − V(${measurement.node2}) = ${Number(measurement.voltage).toPrecision(6)} V · Probe current: 0 A · Removed load: ${measurement.removedLoad||'none'} (feedback stays connected)`;
     let html='<defs><pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse"><circle r=".8" fill="#d6e5ce"/></pattern></defs><rect width="1140" height="720" fill="url(#grid)"/>';
@@ -330,7 +342,7 @@ export default function({parentElement, data, setStateValue}) {
       }
     }
     if(measurement?.portId){const probe=model.items.find(i=>i.id===measurement.portId);if(probe)html+=`<text class="probe-reading" x="${probe.x}" y="${probe.y+64}" text-anchor="middle" font-size="14" fill="#7e4fa9" pointer-events="none">${Number(measurement.voltage).toPrecision(6)} V · I = 0</text>`;}
-    svg.innerHTML=html+lessonOverlay();svg.dataset.tool=ui.tool;
+    svg.innerHTML=html+lessonOverlay()+methodMarkup();svg.dataset.tool=ui.tool;
     if(ui.drag){const item=getItem();ui.drag.visualX=item.x;ui.drag.visualY=item.y;}
     paintPreview();
     parentElement.querySelectorAll('[data-tool]').forEach(b=>b.classList.toggle('active',b.dataset.tool===ui.tool));

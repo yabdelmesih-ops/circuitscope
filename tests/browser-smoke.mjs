@@ -9,13 +9,13 @@ import {resolve,dirname,join} from 'node:path';
 import {fileURLToPath} from 'node:url';
 const {chromium}=await import(process.env.CIRCUITSCOPE_PLAYWRIGHT_PATH||'playwright-core');
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'..');
-const sources=['drawing_app.py','practice.py','practice_ui.py','canvas/editor.js','canvas/editor.html','canvas/editor.css','engine.py','circuit_model.py','topology.py','teaching.py','examples.py','opamp_examples.py','verification.py','spice_export.py','requirements.txt','package.json','tests/browser-smoke.mjs'];
+const sources=['drawing_app.py','practice.py','practice_ui.py','course_methods.py','course_examples.py','course_ui.py','diagram_import.py','screenshot_import.py','screenshot_ui.py','canvas/editor.js','canvas/editor.html','canvas/editor.css','engine.py','circuit_model.py','topology.py','teaching.py','examples.py','opamp_examples.py','verification.py','spice_export.py','requirements.txt','package.json','tests/browser-smoke.mjs'];
 const source_hashes=Object.fromEntries(await Promise.all(sources.map(async name=>[name,createHash('sha256').update(await readFile(join(root,name))).digest('hex')])));
 const output=resolve(process.env.CIRCUITSCOPE_BROWSER_REPORT||join(root,'validation/browser_report.json'));
 const args=process.argv.slice(2),urlFlag=args.indexOf('--url');
 const rows=[],errors=[];let server,browser,page,logs='',failure;
 const report={schema:'circuitscope.browser-check.v1',generated_utc:new Date().toISOString(),platform:process.platform,source_hashes,rows,
- scope:'Real Chromium mouse/keyboard/HTML drag-and-drop, Streamlit component transport, downloads, guided practice and responsive layout checks at 1440, 1024 and 390 pixels. This is a headless browser run on the recorded platform; it does not establish native Windows, physical touch, Safari or Firefox behavior.'};
+ scope:'Real Chromium mouse/keyboard/HTML drag-and-drop, Streamlit component transport, downloads, guided practice, course methods, screenshot upload/review (no live API call) and responsive layout checks at 1440, 1024 and 390 pixels. This is a headless browser run on the recorded platform; it does not establish native Windows, physical touch, Safari or Firefox behavior.'};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function freePort(){const s=createServer();await new Promise((ok,fail)=>{s.once('error',fail);s.listen(0,'127.0.0.1',ok);});const port=s.address().port;await new Promise(ok=>s.close(ok));return port;}
 async function check(name,fn){const started=Date.now();try{await fn();rows.push({Check:name,Result:'PASS',Milliseconds:Date.now()-started});console.log('PASS',name);}catch(error){rows.push({Check:name,Result:'FAIL',Milliseconds:Date.now()-started,Details:error.message});throw error;}}
@@ -41,7 +41,12 @@ async function wire(a,b){
  const end=await pin(b);await page.mouse.move(end.x,end.y,{steps:12});await page.mouse.up();await waitModel(m=>m.wires.length===count+1);await synced();
 }
 async function edit(id,fields){await page.locator(`[data-item="${id}"] .hit`).click();for(const [key,value]of Object.entries(fields)){const input=page.locator(key);if(key==='#opamp-mode')await input.selectOption(value);else await input.fill(String(value));}await page.locator('#apply').click();await synced();}
-async function example(title){const panel=page.locator('[data-testid="stExpander"]').filter({has:page.getByText('Example circuits and solver checks',{exact:true})});const details=panel.locator('details');if(await details.getAttribute('open')===null)await panel.locator('summary').click();await select('Reference circuit',title);await page.getByRole('button',{name:'Load selected example',exact:true}).click();await page.locator('[data-item="V1"]').waitFor();}
+async function loadButton(label){const previous=await page.locator('#editor').elementHandle();await page.getByRole('button',{name:label,exact:true}).click();await page.waitForFunction(el=>!el.isConnected,previous,{timeout:15000});await page.locator('#canvas').waitFor();}
+async function example(title){const panel=page.locator('[data-testid="stExpander"]').filter({has:page.getByText('Example circuits and solver checks',{exact:true})});const details=panel.locator('details');if(await details.getAttribute('open')===null)await panel.locator('summary').click();await select('Reference circuit',title);await loadButton('Load selected example');}
+
+async function expand(title){const panel=page.locator('[data-testid="stExpander"]').filter({has:page.getByText(title,{exact:true})});if(await panel.locator('details').getAttribute('open')===null)await panel.locator('summary').click();}
+async function courseExample(title){await expand('Circuits I method examples');await select('Course example',title);await loadButton('Load course example');}
+async function method(name){await expand('Circuits I methods · explain this circuit');await select('Circuit method',name);await page.getByRole('button',{name:'Explain selected method',exact:true}).click();}
 async function download(label){await synced();const pending=page.waitForEvent('download').then(file=>({file}),error=>({error}));await page.getByRole('button',{name:label,exact:true}).click();const result=await pending;if(result.error)throw result.error;const file=result.file;return{filename:file.suggestedFilename(),text:await readFile(await file.path(),'utf8')};}
 async function layout(){const data=await page.locator('#editor').evaluate(el=>{const r=el.getBoundingClientRect(),p=el.querySelector('#properties').getBoundingClientRect();return{height:r.height,width:r.width,formBottom:p.bottom-r.top,clientWidth:document.documentElement.clientWidth,documentWidth:document.documentElement.scrollWidth};});assert.ok(Math.abs(data.height-820)<2,JSON.stringify(data));assert.ok(data.formBottom<=data.height+1,JSON.stringify(data));assert.ok(data.documentWidth<=data.clientWidth+2,JSON.stringify(data));}
 try{
@@ -98,6 +103,40 @@ try{
   await page.getByText(/The magnitude matches. Check the reference direction/).waitFor();
   await page.getByRole('textbox',{name:'Your predicted answer',exact:true}).fill('-2.4');await page.getByRole('button',{name:'Check my answer',exact:true}).click();
   await page.getByText(/Practice progress: 2\/9 questions answered correctly/).waitFor();
+ });
+ await check('Supernode equations highlight the canvas and edits invalidate the overlay',async()=>{
+  await courseExample('Supernode · floating source');await waitModel(m=>m.items.some(p=>p.id==='V1'&&p.value===6)&&!m.items.some(p=>p.id==='R3'));
+  await method('Supernodes');await page.getByText('Supernode: Va, Vb',{exact:true}).waitFor();await page.locator('#method-overlay').waitFor();
+  await edit('V1',{'#part-value':10});assert.equal(await page.locator('#method-overlay').count(),0);
+ });
+ await check('Superposition displays source contributions and a real circuit preview',async()=>{
+  await courseExample('Superposition · voltage and current sources');await waitModel(m=>m.items.some(p=>p.id==='I1'));
+  await method('Superposition');await page.getByText('Superposition contributions agree with the full linear solution.',{exact:true}).waitFor();
+  await page.getByText(/Contribution sum: 9.3333333 V/).waitFor();assert.ok(await page.getByText('Preview one source contribution',{exact:true}).isVisible());
+ });
+ await check('Divider and source transformation preserve a loaded output',async()=>{
+  await courseExample('Voltage divider and source transformation');await waitModel(m=>m.items.some(p=>p.id==='R2'&&p.value===2000)&&!m.items.some(p=>p.type==='I'));
+  await method('Voltage divider');await page.getByText(/V\(Va\) = 8 V; full solver: 8 V/).waitFor();
+  await method('Source transformation');await page.getByText(/External-node DC voltages match/).waitFor();
+  await loadButton('Load transformed circuit');await waitModel(m=>m.items.some(p=>p.type==='I')&&!m.items.some(p=>p.type==='V'));
+  await solve('8 V');
+ });
+ await check('Both summing amplifiers and a supported feedback cascade solve',async()=>{
+  await courseExample('Summing amplifier · inverting');await waitModel(m=>m.items.some(p=>p.id==='V2'&&p.value===2));await method('Summing amplifiers');await page.getByText(/Predicted Vout: -4 V/).waitFor();await solve('-4 V');
+  await courseExample('Summing amplifier · non-inverting');await waitModel(m=>m.items.some(p=>p.id==='V2'&&p.value===3));await method('Summing amplifiers');await page.getByText(/Predicted Vout: 4 V/).waitFor();await solve('4 V');
+  await courseExample('Supported feedback · follower then gain stage');await waitModel(m=>m.items.some(p=>p.id==='U2'));await method('Feedback loops');await page.getByText(/U1: OUT \(Vbuf\) → direct wire/).waitFor();await solve('3 V');
+ });
+ await check('Screenshot upload and local review require approval before loading',async()=>{
+  await expand('Import a circuit screenshot');
+  const panel=page.locator('[data-testid="stExpander"]').filter({has:page.getByText('Import a circuit screenshot',{exact:true})});
+  // A tiny valid PNG exercises upload, not image recognition. No API request is sent.
+  await panel.locator('input[type="file"]').setInputFiles({name:'upload-check.png',mimeType:'image/png',buffer:Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jWWQAAAAASUVORK5CYII=','base64')});
+  await page.getByRole('textbox',{name:'OpenAI API key',exact:true}).waitFor();
+  await page.getByRole('button',{name:'Try import review demo (no API)',exact:true}).click();
+  assert.ok(await page.getByRole('button',{name:'Load reviewed circuit',exact:true}).isDisabled());
+  await page.getByText('I checked the values, source directions, reference node and every connection against the image',{exact:true}).click();
+  await loadButton('Load reviewed circuit');await waitModel(m=>m.items.some(p=>p.id==='V1'&&p.value===12)&&m.items.length===4);
+  await solve('8 V');await layout();
  });
  await check('No client JavaScript errors during the workflows',async()=>{assert.deepEqual(errors,[]);});
 }catch(error){failure=error;console.error(error.stack||error);if(page&&process.env.CIRCUITSCOPE_BROWSER_DEBUG_DIR){const dir=resolve(process.env.CIRCUITSCOPE_BROWSER_DEBUG_DIR);await mkdir(dir,{recursive:true});await page.screenshot({path:join(dir,'failure.png'),fullPage:true}).catch(()=>{});await writeFile(join(dir,'failure.json'),JSON.stringify({model:await model().catch(()=>null),ui:await page.locator('#editor').evaluate(el=>({selected:el._editorUI?.selected,tool:el._editorUI?.tool,backendRevision:el._editorUI?.backendRevision,pending:el._editorUI?.pending})).catch(()=>null),logs},null,2));}}

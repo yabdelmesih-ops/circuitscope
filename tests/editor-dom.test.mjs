@@ -349,3 +349,15 @@ test('wire gestures keep the property panel and delayed teaching layout steady',
   assert.equal(h.q('#lesson-notes').hidden,false,'fresh results can appear after completion');
   h.close();
 });
+
+test('course overlays highlight nodes and cannot return after a stale electrical edit',()=>{
+  const h=harness(sample),updates=[];
+  const data={drawing:structuredClone(sample),node_map:lessonMap,method_overlay:{nodes:['Va','Vb'],parts:['R1'],label:'Course method'}};
+  let cleanup=renderer({parentElement:h.document.body,data,setStateValue:(key,value)=>updates.push(structuredClone(value))});
+  assert.ok(h.q('#method-overlay'));assert.ok(h.q('.method-wire'));assert.ok(h.q('.method-part'));
+  h.pointer('pointerdown',h.q('[data-item="R1"] .hit'),400,300);h.pointer('pointerup',h.svg,400,300);
+  h.q('#part-value').value='2200';h.q('#apply').click();assert.equal(h.q('#method-overlay'),null);
+  cleanup=renderer({parentElement:h.document.body,data,setStateValue:()=>{}});
+  assert.equal(h.q('#method-overlay'),null);
+  cleanup();h.close();
+});

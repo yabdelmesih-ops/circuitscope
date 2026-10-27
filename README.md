@@ -17,6 +17,8 @@ Built with Python, NumPy, Streamlit and vanilla JavaScript/SVG.
 - **Modified Nodal Analysis solver** for resistors, independent voltage/current sources, and ideal op amps in two modes: **negative feedback** and **open-loop comparator**.
 - **Analyses:** node voltage, open-circuit output voltage, branch current, component power, and **Thévenin / Norton equivalents** between any two nodes.
 - **Click-to-explain lessons.** Click any wire or terminal to see the node highlighted, numbered current arrows, the symbolic KCL equation, and a numerical check that currents balance.
+- **Circuits I methods.** Step-by-step explanations of supernodes, superposition, source transformations, voltage dividers, negative-feedback paths and summing amplifiers, applied to your own drawing, with seven worked course examples checked against hand answers.
+- **Screenshot import.** Upload a photo or screenshot of a circuit and convert it into an editable schematic (OpenAI vision API, your own key). A required review step lets you correct every component and connection before loading.
 - **Guided practice.** Nine predict-then-check questions with hints, unit-aware grading and worked solutions.
 - **SPICE export** to LTspice or ngspice netlists.
 - **Validation:** 29 configurations checked against ngspice (293 comparisons), 11 reference circuits checked against hand calculations (153 comparisons), and an end-to-end browser test suite.
@@ -94,7 +96,7 @@ All 11 pass, 153 comparisons in total. Hand derivations are in [docs/reference-c
 
 ### Browser tests
 
-A Playwright suite drives the live Streamlit app in Chromium with real mouse, keyboard and drag-and-drop input. All 14 workflow checks pass. Running it found and fixed four real bugs, including duplicate event listeners and a remount that lost undo history. Details: [docs/browser-tests.md](docs/browser-tests.md).
+A Playwright suite drives the live Streamlit app in Chromium with real mouse, keyboard and drag-and-drop input. All 19 workflow checks pass, including the course methods and the screenshot review flow. Running it found and fixed four real bugs, including duplicate event listeners and a remount that lost undo history. Details: [docs/browser-tests.md](docs/browser-tests.md).
 
 ![Loaded resistor bridge with node Va selected](docs/images/resistor-bridge.png)
 *A loaded Wheatstone-style bridge. Va and Vb are coupled through R5, so they must be solved together.*
@@ -119,7 +121,7 @@ On Windows you can also double-click `RUN_CIRCUITSCOPE.bat`.
 ### Running the tests
 
 ```bash
-python -m unittest discover -s tests -v   # Python: topology, engine, op amps, comparators, practice, SPICE, app
+python -m unittest discover -s tests -v   # Python: topology, engine, op amps, course methods, practice, SPICE, import, app
 npm install
 npm test                                  # JavaScript: wiring geometry and editor DOM (jsdom)
 npm run test:browser                      # End-to-end: live app in Chromium (Playwright)
@@ -136,8 +138,14 @@ engine.py            MNA construction and solve, comparator iteration, Thévenin
 circuit_model.py     Shared conventions, op-amp feedback and comparator checks
 topology.py          Drawing → netlist (union-find), input validation
 teaching.py          Node lessons: KCL equations, current directions
+course_methods.py    Supernodes, superposition, transformations, dividers, feedback, summing amps
+course_examples.py   Course example drawings with hand-derived answers
+course_ui.py         Circuits I methods interface
 practice.py          Guided-practice questions and grading
 practice_ui.py       Guided-practice interface
+screenshot_import.py Image preparation and structured netlist request (OpenAI API)
+screenshot_ui.py     Screenshot upload and review interface
+diagram_import.py    Netlist → editable drawing, safe SVG preview
 spice_export.py      LTspice / ngspice netlist export
 spice_validate.py    ngspice validation runner and report
 examples.py          Reference circuits with hand-derived answers
@@ -149,7 +157,7 @@ validation/          ngspice report and decks, browser test report
 docs/                Design documentation
 ```
 
-**Further reading:** [architecture](docs/architecture.md) · [op-amp model](docs/op-amp-model.md) · [SPICE validation](docs/spice-validation.md) · [reference cases](docs/reference-cases.md) · [guided practice](docs/guided-practice.md) · [browser tests](docs/browser-tests.md) · [user guide](docs/user-guide.md)
+**Further reading:** [architecture](docs/architecture.md) · [op-amp model](docs/op-amp-model.md) · [SPICE validation](docs/spice-validation.md) · [reference cases](docs/reference-cases.md) · [Circuits I methods](docs/circuits-i-methods.md) · [screenshot import](docs/screenshot-import.md) · [guided practice](docs/guided-practice.md) · [browser tests](docs/browser-tests.md) · [user guide](docs/user-guide.md)
 
 ---
 
