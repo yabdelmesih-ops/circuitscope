@@ -5,7 +5,7 @@ from course_methods import supernodes, superposition, feedback_paths, divider, t
 from circuit_model import component_nodes, branch_nodes
 from topology import compile_drawing, output_ports
 from teaching import circuit_signature
-from diagram_import import netlist_to_drawing, preview_svg
+from circuit_layout import netlist_to_drawing, preview_svg
 
 METHODS=['Supernodes','Superposition','Source transformation','Voltage divider','Feedback loops','Summing amplifiers']
 

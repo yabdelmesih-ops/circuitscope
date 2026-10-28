@@ -9,12 +9,10 @@ from teaching import build_lesson, circuit_signature, current_label, number, mat
 from examples import get_examples
 from verification import verify_examples, source_fingerprint, load_spice_report
 from spice_export import export_spice
-from practice_ui import render_practice
 from course_ui import render_course_examples, render_methods
-from screenshot_ui import render_screenshot_import
 
 st.set_page_config(page_title='CircuitScope Canvas', layout='wide')
-st.title('CircuitScope — draw, solve, understand')
+st.title('CircuitScope')
 st.caption('DC circuits with resistors, independent sources and ideal op amps: negative-feedback or open-loop comparator mode. Add an Output probe to measure voltage without drawing load current. Values use Ω, V and A; ground is node 0.')
 try:
     from engine import solve_circuit, get_voltages, thevenin
@@ -37,7 +35,6 @@ def load_drawing(model):
     st.session_state.canvas_revision += 1
     st.session_state.pop('analysis_result', None)
     st.session_state.pop('spice_export', None)
-    st.session_state.pop('practice_active', None)
     st.session_state.pop('method_result', None)
     st.session_state.question_kind = 'Node voltage'
     st.session_state.pop('question_node', None)
@@ -123,9 +120,7 @@ with st.container():
             else:
                 st.info(reason)
 
-    render_practice(st, load_drawing)
     render_course_examples(st, load_drawing)
-    render_screenshot_import(st, load_drawing)
 
     with st.expander('Op-amp material · ideal rules and worked gains'):
         st.write('Place an Op amp from the inventory. Pin + is the non-inverting input, pin − is the inverting input, and OUT is the output. Select its body to choose Negative feedback (linear) or Open loop (comparator), then Apply. Both ideal input currents are zero. For the linear mode, connect output back to − directly or through resistors.')
@@ -141,8 +136,6 @@ with st.container():
         st.write('Try Open loop · comparator HIGH: 3 V at + and 2 V at − select a 5 V output. Change the 3 V source to 1 V: the output becomes 0 V. At equal inputs (or within the numerical guard of 1 nV), the ideal decision is undefined and the app asks you to change the signal/reference. That guard is not hysteresis or an input offset.')
         st.write('Open output means no external load is attached. Feedback resistors may still carry current. An Output probe has infinite resistance and never joins its two terminals. A completely floating node has no uniquely defined voltage.')
         st.caption('Scope: ideal DC with supported negative feedback, or an ideal two-level open-loop comparator with no feedback path. Comparator limits are configured output levels, with implicit supplies. No hysteresis, oscillation, finite open-loop gain, switching delay, saturation waveform, frequency response, offset, bias current or current-limit simulation. Global Thévenin/Norton analysis is restricted to linear circuits. Output-limit checks do not model real supply headroom.')
-        st.markdown('[Learning reference: MIT OpenCourseWare — Op Amps I](https://ocw.mit.edu/courses/6-071j-introduction-to-electronics-signals-and-measurement-spring-2006/resources/22_op_amps1/)')
-        st.markdown('[Open-loop reference: Analog Devices — Basic Op Amp Configurations, comparator section](https://www.analog.com/en/resources/analog-dialogue/studentzone/studentzone-may-2019.html)')
 
     key = f'circuit_canvas_{st.session_state.canvas_revision}'
     previous = st.session_state.get(key, {})

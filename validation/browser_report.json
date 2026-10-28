@@ -1,17 +1,13 @@
 {
   "schema": "circuitscope.browser-check.v1",
-  "generated_utc": "2026-10-25T20:42:54.046Z",
+  "generated_utc": "2026-10-28T02:16:49.631Z",
   "platform": "linux",
   "source_hashes": {
-    "drawing_app.py": "106d5d228385a75e8be2419af348425e623d8a4515892f478c873bbcfe8a2694",
-    "practice.py": "6435394b272883d4800b67bd51d31439950022b9a559f97839f73fd5ed5785a1",
-    "practice_ui.py": "35b77ca2ecb31a1e5fb532f9196562dcf8bcbe871e6ecd2e772b5150c4f1bb9b",
+    "drawing_app.py": "cd72913b580d5de5028f8ea26d3952b97abc0ca37a02cee9146b8cbdbcf9fa05",
     "course_methods.py": "d0d0fbcb3e7c3711c776eacdbde18938a311fbe7dc6019d053faa5bf9478c31e",
     "course_examples.py": "1baef69a3fa68668b3231dcc6d4bd80a64937a721ee1e8b5caf32983b36ff115",
-    "course_ui.py": "94248f43c68f1e854f4a78ebf8c49892a2cfc3cfc7df66a1ad080753ea991def",
-    "diagram_import.py": "368feef09be1938fd2bcc1f8fca6777023eb656f10973e6d6ed89db37fedde06",
-    "screenshot_import.py": "b259d27c7f738188298d3b0b05a31ed2b7867e22dc54e5e8025835816895b2b1",
-    "screenshot_ui.py": "323ec46af427559bf481fca378cc020f9ec0f2c697af9256fa8b1487229cb2f1",
+    "course_ui.py": "60eb5c764767c94de3ca13add057d4c295e8f0dba63c33cb58779fbd79ed03f0",
+    "circuit_layout.py": "8c17cb25a61b9b6d72611522a12d8a95aad4c4607bf47d3c66a695acebedaf2f",
     "canvas/editor.js": "959b0f5c80f75bf17a3202e0cf799ba1b6b5ed205c711430cbd2f0506acbe8a8",
     "canvas/editor.html": "0b4b413a99d92d13e90c51ecdd1baf56a0767c390521ceb2dad2788eceb54dae",
     "canvas/editor.css": "844bd2642c426d4921953a002c3a06d5c951fbf1e0282580670948ca4508f2ba",
@@ -23,100 +19,85 @@
     "opamp_examples.py": "256e4c7d024b20ca146a109bc465fb6da965ccd93b38a6775f86f70b4db90d84",
     "verification.py": "50b53d7a44b41d652ac874dac0a3b3d31fd4e187f70fb5c0058cc1d821649f43",
     "spice_export.py": "2205ec708524422f4fe8200b7cca0237bb9cbfcbecbf7367fa93f46c9716a3ef",
-    "requirements.txt": "76c966d745540e9285acdf57fa20e4ebdd0f246dec4ad6c5965a6f3c7acbd86e",
+    "requirements.txt": "03581847b313c5b3ce150f6b571019459eed9d675abe86fc0a526aec9b58405a",
     "package.json": "9fbeaf3759a4eef335fc5969d66496bccac5d46a40cbf52fe570d66f692b1d08",
-    "tests/browser-smoke.mjs": "c40913d077e6895975c794d83a6fb1764442f04eeb1700d77534d565629b0cb4"
+    "tests/browser-smoke.mjs": "d023f820c15faabf24be647ecaba31899009dfa1c6721743477fc1e1cf7e1699"
   },
   "rows": [
     {
       "Check": "Empty startup and bounded desktop editor",
       "Result": "PASS",
-      "Milliseconds": 29
+      "Milliseconds": 24
     },
     {
       "Check": "Native inventory drag-and-drop and terminal wiring reach Python",
       "Result": "PASS",
-      "Milliseconds": 4631
+      "Milliseconds": 3985
     },
     {
       "Check": "Explain-node click produces a live visual lesson",
       "Result": "PASS",
-      "Milliseconds": 143
+      "Milliseconds": 87
     },
     {
       "Check": "Property edit and Undo invalidate and recalculate results",
       "Result": "PASS",
-      "Milliseconds": 926
+      "Milliseconds": 846
     },
     {
       "Check": "Wire branching creates one junction and an unloaded probe reads voltage",
       "Result": "PASS",
-      "Milliseconds": 2549
+      "Milliseconds": 2337
     },
     {
       "Check": "Cancel a pending wire, clear, and Undo preserve saved drawing",
       "Result": "PASS",
-      "Milliseconds": 412
+      "Milliseconds": 322
     },
     {
       "Check": "SPICE download contains the current full circuit",
       "Result": "PASS",
-      "Milliseconds": 716
+      "Milliseconds": 673
     },
     {
       "Check": "Feedback op amp and removed-load overlay solve through the browser",
       "Result": "PASS",
-      "Milliseconds": 3464
+      "Milliseconds": 3296
     },
     {
       "Check": "Open-loop HIGH, LOW and equality handling have no stale result",
       "Result": "PASS",
-      "Milliseconds": 2946
+      "Milliseconds": 2713
     },
     {
       "Check": "Independent SPICE report can be inspected",
       "Result": "PASS",
-      "Milliseconds": 155
+      "Milliseconds": 153
     },
     {
       "Check": "Lesson and op-amp properties remain bounded at tablet and mobile widths",
       "Result": "PASS",
-      "Milliseconds": 1008
-    },
-    {
-      "Check": "Guided practice checks units, reveals on success and rejects changed circuits",
-      "Result": "PASS",
-      "Milliseconds": 2524
-    },
-    {
-      "Check": "Practice reveal is optional and signed current is graded in milliamps",
-      "Result": "PASS",
-      "Milliseconds": 2304
+      "Milliseconds": 834
     },
     {
       "Check": "Supernode equations highlight the canvas and edits invalidate the overlay",
       "Result": "PASS",
-      "Milliseconds": 3389
+      "Milliseconds": 3356
     },
     {
       "Check": "Superposition displays source contributions and a real circuit preview",
       "Result": "PASS",
-      "Milliseconds": 1897
+      "Milliseconds": 1799
     },
     {
       "Check": "Divider and source transformation preserve a loaded output",
       "Result": "PASS",
-      "Milliseconds": 1723
+      "Milliseconds": 1518
     },
     {
       "Check": "Both summing amplifiers and a supported feedback cascade solve",
       "Result": "PASS",
-      "Milliseconds": 6594
-    },
-    {
-      "Check": "Screenshot upload and local review require approval before loading",
-      "Result": "PASS",
-      "Milliseconds": 2265
+      "Milliseconds": 6302
     },
     {
       "Check": "No client JavaScript errors during the workflows",
@@ -124,7 +105,7 @@
       "Milliseconds": 1
     }
   ],
-  "scope": "Real Chromium mouse/keyboard/HTML drag-and-drop, Streamlit component transport, downloads, guided practice, course methods, screenshot upload/review (no live API call) and responsive layout checks at 1440, 1024 and 390 pixels. This is a headless browser run on the recorded platform; it does not establish native Windows, physical touch, Safari or Firefox behavior.",
+  "scope": "Real Chromium mouse/keyboard/HTML drag-and-drop, Streamlit component transport, downloads, course methods and responsive layout checks at 1440, 1024 and 390 pixels. This is a headless browser run on the recorded platform; it does not establish native Windows, physical touch, Safari or Firefox behavior.",
   "browser": "153.0.8010.0",
   "client_errors": [],
   "status": "PASS"

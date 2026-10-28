@@ -3,7 +3,7 @@ import unittest
 from course_examples import get_course_examples
 from course_ui import verify_course_examples
 from course_methods import *
-from diagram_import import netlist_to_drawing, preview_svg
+from circuit_layout import netlist_to_drawing, preview_svg
 from topology import compile_drawing
 
 

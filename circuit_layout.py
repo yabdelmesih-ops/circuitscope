@@ -1,5 +1,4 @@
 """Convert an explicit netlist into editable canvas wiring and a safe preview."""
-from copy import deepcopy
 from html import escape
 from math import cos, sin, radians
 from topology import compile_drawing, terminals
@@ -15,11 +14,10 @@ def pin_positions(item):
 def netlist_to_drawing(components, *, positions=None):
     """Labels never make connections: every shared node receives explicit wires.
 
-    The generated layout is schematic rather than a pixel-perfect reconstruction.
-    Positions may supply reviewed screenshot locations; otherwise use a grid.
+    Positions may override the default grid for method previews.
     """
     if not isinstance(components, list) or not 1 <= len(components) <= 24:
-        raise ValueError('Import 1–24 supported components at a time.')
+        raise ValueError('Lay out 1–24 supported components at a time.')
     items, groups = [], {}
     used = {p.get('name') for p in components if isinstance(p, dict)}
     if len(used) != len(components):
@@ -43,10 +41,10 @@ def netlist_to_drawing(components, *, positions=None):
             groups.setdefault(node, []).append(pin)
         items.append(item)
     if '0' not in groups:
-        raise ValueError('Identify a reference node named 0 before importing.')
+        raise ValueError('Identify a reference node named 0 before laying out the circuit.')
     if len(groups) > 40:
-        raise ValueError('Import at most 40 electrical nodes.')
-    ground = 'GNDimport'
+        raise ValueError('Lay out at most 40 electrical nodes.')
+    ground = 'GNDlayout'
     while ground in used:
         ground += '_'
     items.append(dict(id=ground, type='GROUND', x=80, y=660, rotation=0))

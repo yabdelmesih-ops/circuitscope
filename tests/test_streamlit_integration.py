@@ -1,6 +1,5 @@
 """Run the real Streamlit registration and sample solve when installed."""
 from pathlib import Path
-from copy import deepcopy
 import unittest
 from unittest.mock import patch
 
@@ -55,89 +54,9 @@ class StreamlitIntegrationTests(unittest.TestCase):
         self.assertIn('8 V',[m.value for m in app.metric])
         self.assertTrue(any(p['type']=='I' for p in app.session_state['canvas_seed']['items']))
 
-    def test_import_review_requires_approval_and_blocks_unsupported_symbols(self):
-        app=AppTest.from_file(str(ROOT/'drawing_app.py')).run()
-        next(b for b in app.button if b.label=='Try import review demo (no API)').click().run()
-        load=next(b for b in app.button if b.label=='Load reviewed circuit')
-        self.assertTrue(load.disabled)
-        next(c for c in app.checkbox if c.label.startswith('I checked the values')).check().run()
-        next(b for b in app.button if b.label=='Load reviewed circuit').click().run()
-        next(b for b in app.button if b.label=='Solve drawing').click().run()
-        self.assertFalse(app.exception,[e.message for e in app.exception])
-        self.assertIn('8 V',[m.value for m in app.metric])
-        payload=app.session_state['image_candidate']['payload']
-        payload['unsupported']=['capacitor C1']
-        app.run()
-        self.assertTrue(any('Unsupported elements' in e.value for e in app.error))
-        self.assertFalse(any(b.label=='Load reviewed circuit' for b in app.button))
 
-    def test_practice_hints_checking_and_reveal_are_explicit(self):
-        app = AppTest.from_file(str(ROOT / 'drawing_app.py')).run()
-        next(b for b in app.button if b.label == 'Start practice question').click().run()
-        self.assertFalse(app.exception, [e.message for e in app.exception])
-        self.assertFalse(app.metric)
-        self.assertFalse(app.session_state['practice_active']['revealed'])
-        next(t for t in app.text_input if t.label == 'Your predicted answer').set_value('7')
-        next(b for b in app.button if b.label == 'Check my answer').click().run()
-        self.assertFalse(app.session_state['practice_active']['revealed'])
-        self.assertTrue(any('Try again' in m.value for m in app.info))
-        next(b for b in app.button if b.label == 'Show next hint').click().run()
-        self.assertEqual(app.session_state['practice_active']['hints'], 1)
-        next(s for s in app.selectbox if s.label == 'Answer unit').set_value('mV')
-        next(t for t in app.text_input if t.label == 'Your predicted answer').set_value('8000')
-        next(b for b in app.button if b.label == 'Check my answer').click().run()
-        self.assertFalse(app.exception, [e.message for e in app.exception])
-        self.assertTrue(app.session_state['practice_active']['revealed'])
-        record = app.session_state['practice_progress']['divider_voltage']
-        self.assertTrue(record['correct'])
-        self.assertEqual(record['attempts'], 2)
-        self.assertFalse(app.metric, 'practice must not silently run the regular solver')
 
-    def test_practice_rejects_changed_circuits_and_keeps_progress_across_questions(self):
-        app = AppTest.from_file(str(ROOT / 'drawing_app.py')).run()
-        next(b for b in app.button if b.label == 'Start practice question').click().run()
-        next(b for b in app.button if b.label == 'Reveal worked answer').click().run()
-        self.assertFalse(app.session_state['practice_progress']['divider_voltage']['correct'])
-        key = f"circuit_canvas_{app.session_state['canvas_revision']}"
-        drawing = deepcopy(app.session_state[key]['drawing'])
-        drawing['items'][0]['x'] += 40
-        app.session_state[key] = {'drawing': drawing, 'node_request': None}
-        app.run()
-        self.assertTrue(any(b.label == 'Check my answer' for b in app.button))
-        drawing['items'][0]['value'] = 24
-        app.session_state[key] = {'drawing': drawing, 'node_request': None}
-        app.run()
-        self.assertTrue(any('circuit changed' in w.value for w in app.warning))
-        self.assertFalse(any(b.label == 'Check my answer' for b in app.button))
-        next(s for s in app.selectbox if s.label == 'Practice question').set_value('4 · Signed branch current').run()
-        next(b for b in app.button if b.label == 'Start practice question').click().run()
-        self.assertFalse(app.exception, [e.message for e in app.exception])
-        self.assertEqual(app.session_state['practice_active']['id'], 'branch_direction')
-        self.assertEqual(app.session_state['question_kind'], 'Branch current')
-        self.assertEqual(app.session_state['question_branch'], 'R3')
-        self.assertIn('divider_voltage', app.session_state['practice_progress'])
-        next(b for b in app.button if b.label == 'Load worked example').click().run()
-        self.assertNotIn('practice_active', app.session_state)
 
-    def test_practice_selection_does_not_change_an_active_key_until_start(self):
-        app = AppTest.from_file(str(ROOT / 'drawing_app.py')).run()
-        next(b for b in app.button if b.label == 'Start practice question').click().run()
-        next(t for t in app.text_input if t.label == 'Your predicted answer').set_value('nan')
-        next(b for b in app.button if b.label == 'Check my answer').click().run()
-        self.assertEqual(app.session_state['practice_progress']['divider_voltage']['attempts'], 0)
-        next(s for s in app.selectbox if s.label == 'Practice question').set_value('6 · Resistance seen at a port').run()
-        self.assertEqual(app.session_state['practice_active']['id'], 'divider_voltage')
-        next(b for b in app.button if b.label == 'Start practice question').click().run()
-        self.assertFalse(app.exception, [e.message for e in app.exception])
-        self.assertEqual(app.session_state['practice_active']['id'], 'bridge_resistance')
-        self.assertEqual(app.session_state['practice_answer'], '')
-        self.assertEqual(app.session_state['practice_unit'], 'kΩ')
-        self.assertEqual(app.session_state['question_kind'], 'Thevenin')
-        self.assertEqual(app.session_state['question_reference'], 'Vb')
-        self.assertEqual(app.session_state['removed_load'], 'R5')
-        next(t for t in app.text_input if t.label == 'Your predicted answer').set_value('1.333')
-        next(b for b in app.button if b.label == 'Check my answer').click().run()
-        self.assertTrue(app.session_state['practice_progress']['bridge_resistance']['correct'])
 
     def test_load_bridge_and_run_reference_checks_without_changing_the_drawing(self):
         with patch.dict('sys.modules', {'engine': reference_engine}):
